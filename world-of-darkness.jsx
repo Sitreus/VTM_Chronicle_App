@@ -7,7 +7,8 @@ const GAME_TYPES = [
   { id: "mta", label: "Mage: The Ascension", accent: "#7b2fbe", icon: "✦" },
   { id: "wta", label: "Werewolf: The Apocalypse", accent: "#4a8c3f", icon: "🐺" },
   { id: "wto", label: "Wraith: The Oblivion", accent: "#4a6fa5", icon: "👻" },
-  { id: "htv", label: "Hunter: The Vigil", accent: "#8b8000", icon: "⚔" },
+  { id: "htr", label: "Hunter: The Reckoning", accent: "#8b8000", icon: "⚔" },
+  { id: "ctd", label: "Changeling: The Dreaming", accent: "#6a4fb8", icon: "🦋" },
   { id: "mixed", label: "Mixed Chronicle", accent: "#9a6b4c", icon: "◈" },
 ];
 // Game splash images
@@ -22,17 +23,19 @@ const GAME_SPLASH_DATA = {
   mta: { img: MAGE_IMG, tagline: "Reality is a lie. Magick is the truth.", color: "#7b2fbe", glow: "rgba(123,47,190,0.4)" },
   wta: { img: WEREWOLF_IMG, tagline: "When will you Rage?", color: "#8b1a1a", glow: "rgba(139,26,26,0.4)" },
   wto: { img: WRAITH_IMG, tagline: "The mirror cracks. The dead remember.", color: "#4a6fa5", glow: "rgba(74,111,165,0.4)" },
-  htv: { img: HUNTER_IMG, tagline: "We hunt those who hunt us.", color: "#8b8000", glow: "rgba(139,128,0,0.4)" },
+  htr: { img: HUNTER_IMG, tagline: "We hunt those who hunt us.", color: "#8b8000", glow: "rgba(139,128,0,0.4)" },
+  ctd: { img: null, tagline: "Dreams are the only reality.", color: "#6a4fb8", glow: "rgba(106,79,184,0.4)" },
 };
 
 // Per-game-type default backgrounds — replace null with base64 data URIs when images are ready
 const GAME_BACKGROUNDS = {
-  vtm: null, // Vampire: The Masquerade — dark crimson
-  mta: null, // Mage: The Ascension — deep purple
-  wta: null, // Werewolf: The Apocalypse — forest green
-  wto: null, // Wraith: The Oblivion — steel blue
-  htv: null, // Hunter: The Vigil — amber
-  mixed: null, // Mixed Chronicle — neutral
+  vtm: "/backgrounds/vtm.jpg",
+  mta: "/backgrounds/mta.jpg",
+  wta: "/backgrounds/wta.jpg",
+  wto: "/backgrounds/wto.jpg",
+  htr: "/backgrounds/htr.jpg",
+  ctd: "/backgrounds/ctd.jpg",
+  mixed: null,
 };
 
 const RELATIONSHIP_TYPES = [
@@ -567,13 +570,12 @@ export default function WorldOfDarkness() {
   const [confirmAction, setConfirmAction] = useState(null); // {msg, onConfirm}
   const [showSplash, setShowSplash] = useState(true);
   const [splashPhase, setSplashPhase] = useState("welcome"); // "welcome" | "select"
+  const [activeGameType, setActiveGameType] = useState(null); // Selected game line (e.g. "vtm", "mta")
   const [apiKey, setApiKey] = useState(""); // Anthropic API key
   const [proxyUrl, setProxyUrl] = useState(""); // Optional CORS proxy URL
-  // bgImage is now per-chronicle (stored in chronicleData) with DEFAULT_BG fallback
   const fileInputRef = useRef(null);
   const sessionFileRef = useRef(null);
   const characterFileRef = useRef(null);
-  const bgInputRef = useRef(null);
   const activeChronicleIdRef = useRef(activeChronicleId);
   activeChronicleIdRef.current = activeChronicleId;
   const chronicleDataRef = useRef(chronicleData);
@@ -591,31 +593,26 @@ export default function WorldOfDarkness() {
   const activeChronicle = chronicles.find(c => c.id === activeChronicleId);
   const gameType = activeChronicle ? GAME_TYPES.find(g => g.id === activeChronicle.gameType) : null;
   const accent = gameType?.accent || "#c41e3a";
-  const gameBg = gameType ? GAME_BACKGROUNDS[gameType.id] : null;
-  const bgImage = chronicleData?.bgImage || gameBg || DEFAULT_BG;
+  const gameBg = activeGameType ? GAME_BACKGROUNDS[activeGameType] : (gameType ? GAME_BACKGROUNDS[gameType.id] : null);
+  const bgImage = gameBg || DEFAULT_BG;
 
   // Load chronicles list and background
   useEffect(() => {
     (async () => {
       const data = await storageGet("wod-chronicles");
       if (data?.chronicles) {
-        setChronicles(data.chronicles);
-        if (data.chronicles.length > 0 && !activeChronicleId) {
-          setActiveChronicleId(data.chronicles[0].id);
-        }
+        // Migrate old "htv" (Hunter: The Vigil) to "htr" (Hunter: The Reckoning)
+        let migrated = false;
+        const updated = data.chronicles.map(c => {
+          if (c.gameType === "htv") { migrated = true; return { ...c, gameType: "htr" }; }
+          return c;
+        });
+        if (migrated) await storageSet("wod-chronicles", { ...data, chronicles: updated });
+        setChronicles(updated);
       }
-      const bg = await storageGet("wod-background");
-      // Migration: move old global bg to first chronicle if exists
-      if (bg && data?.chronicles?.length > 0) {
-        try {
-          const firstChrData = await storageGet(`wod-chr-${data.chronicles[0].id}`);
-          if (firstChrData && !firstChrData.bgImage) {
-            firstChrData.bgImage = bg;
-            await storageSet(`wod-chr-${data.chronicles[0].id}`, firstChrData);
-          }
-          await window.storage.delete("wod-background");
-        } catch {}
-      }
+      // Restore last active game type
+      const savedGameType = await storageGet("wod-active-game-type");
+      if (savedGameType) setActiveGameType(savedGameType);
       const savedKey = await storageGet("wod-api-key");
       if (savedKey) setApiKey(savedKey);
       const savedProxy = await storageGet("wod-proxy-url");
@@ -623,6 +620,20 @@ export default function WorldOfDarkness() {
       setLoading(false);
     })();
   }, []);
+
+  // When game type changes, select first matching chronicle
+  useEffect(() => {
+    if (!activeGameType || chronicles.length === 0) return;
+    const matching = chronicles.filter(c => c.gameType === activeGameType);
+    if (matching.length > 0) {
+      if (!activeChronicleId || !matching.find(c => c.id === activeChronicleId)) {
+        saveBeforeSwitch();
+        setActiveChronicleId(matching[0].id);
+      }
+    } else {
+      setActiveChronicleId(null);
+    }
+  }, [activeGameType, chronicles.length]);
 
   // Load chronicle data when selection changes
   useEffect(() => {
@@ -1009,25 +1020,7 @@ CRITICAL RULES:
     reader.readAsDataURL(file);
   };
 
-  // Background image upload — per chronicle
-  const handleBgUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !chronicleData || !activeChronicleId) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const newData = { ...chronicleData, bgImage: reader.result };
-      await saveChronicleData(newData);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
 
-  const removeBg = async () => {
-    if (!chronicleData || !activeChronicleId) return;
-    const newData = { ...chronicleData };
-    delete newData.bgImage;
-    await saveChronicleData(newData);
-  };
 
   // ─── "Previously on..." Recap ─────
   const generateRecap = async () => {
@@ -2118,17 +2111,23 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
 
     if (showModal === "newChronicle") return (
       <Modal onClose={() => setShowModal(null)}>
-        <div style={{ ...S.cardHeader, color: "#c41e3a" }}>New Chronicle</div>
+        <div style={{ ...S.cardHeader, color: accent }}>New Chronicle</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <input style={S.input} placeholder="Chronicle Name" value={modalData.name || ""}
             onChange={e => setModalData(d => ({ ...d, name: e.target.value }))} autoFocus />
-          <select style={S.select} value={modalData.gameType || "vtm"}
-            onChange={e => setModalData(d => ({ ...d, gameType: e.target.value }))}>
-            {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.icon} {g.label}</option>)}
-          </select>
+          {activeGameType ? (
+            <div style={{ ...S.input, background: "rgba(255,255,255,0.03)", color: "#8a7e70", display: "flex", alignItems: "center", gap: 8 }}>
+              {GAME_TYPES.find(g => g.id === activeGameType)?.icon} {GAME_TYPES.find(g => g.id === activeGameType)?.label}
+            </div>
+          ) : (
+            <select style={S.select} value={modalData.gameType || "vtm"}
+              onChange={e => setModalData(d => ({ ...d, gameType: e.target.value }))}>
+              {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.icon} {g.label}</option>)}
+            </select>
+          )}
           <textarea style={{ ...S.textarea, minHeight: 80 }} placeholder="Chronicle description (optional)"
             value={modalData.description || ""} onChange={e => setModalData(d => ({ ...d, description: e.target.value }))} />
-          <button style={S.btnFilled("#c41e3a")} onClick={createChronicle}>Create Chronicle</button>
+          <button style={S.btnFilled(accent)} onClick={createChronicle}>Create Chronicle</button>
         </div>
       </Modal>
     );
@@ -2608,16 +2607,19 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     return null;
   };
 
-  const handleSplashSelect = (gameId) => {
+  const handleSplashSelect = async (gameId) => {
+    setActiveGameType(gameId);
+    await storageSet("wod-active-game-type", gameId);
     setShowSplash(false);
-    // If no chronicles exist, open new chronicle modal with this game type pre-selected
-    if (chronicles.length === 0) {
+    // Filter chronicles for this game type
+    const matching = chronicles.filter(c => c.gameType === gameId);
+    if (matching.length === 0) {
       setModalData({ gameType: gameId });
       setShowModal("newChronicle");
     } else {
-      // Find first chronicle matching this game type, or just go to dashboard
-      const match = chronicles.find(c => c.gameType === gameId);
-      if (match) { saveBeforeSwitch(); setActiveChronicleId(match.id); }
+      // Switch to first matching chronicle
+      saveBeforeSwitch();
+      setActiveChronicleId(matching[0].id);
     }
   };
 
@@ -2691,10 +2693,12 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
           backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
         }} />
 
-        {/* Skip button */}
-        <button className="splash-skip" onClick={() => setShowSplash(false)}>
-          Skip →
-        </button>
+        {/* Skip button — only if a game type was previously selected */}
+        {activeGameType && (
+          <button className="splash-skip" onClick={() => setShowSplash(false)}>
+            Skip →
+          </button>
+        )}
 
         {splashPhase === "welcome" ? (
           <div style={{
@@ -2777,7 +2781,13 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
                       background: `linear-gradient(135deg, ${splash.glow}, transparent)`,
                       opacity: 0, transition: "opacity 0.4s ease", zIndex: -1,
                     }} />
-                    <img src={splash.img} alt={game.label} />
+                    {splash?.img ? <img src={splash.img} alt={game.label} /> : (
+                      <div style={{
+                        width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                        background: `linear-gradient(135deg, ${game.accent}40 0%, ${game.accent}15 100%)`,
+                        fontSize: 64,
+                      }}>{game.icon}</div>
+                    )}
                     {/* Gradient overlay */}
                     <div className="splash-card-overlay" style={{
                       position: "absolute", bottom: 0, left: 0, right: 0,
@@ -2880,21 +2890,10 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
           {/* Background controls */}
           <div style={S.bgBar}>
             <button style={{ ...S.bgBtn(false), letterSpacing: 1.5, fontFamily: "'Cinzel', serif", fontSize: 11 }}
-              onClick={() => { setShowSplash(true); setSplashPhase("select"); }}>
+              onClick={() => { saveBeforeSwitch(); setShowSplash(true); setSplashPhase("select"); }}>
               ◈ Selection Menu
             </button>
             <button style={{ ...S.bgBtn(false), padding: "6px 12px" }} title="API Settings" onClick={() => { setShowModal("settings"); setModalData({ apiKey, proxyUrl }); }}>⚙</button>
-            <button style={S.bgBtn(!!chronicleData?.bgImage)} onClick={() => bgInputRef.current?.click()}>
-              <span style={{ fontSize: 14 }}>🖼</span> {chronicleData?.bgImage ? "Change BG" : "Custom BG"}
-            </button>
-            <input ref={bgInputRef} type="file" accept="image/*" hidden onChange={handleBgUpload} />
-            {chronicleData?.bgImage && (
-              <button style={{ ...S.bgBtn(false), padding: "6px 12px" }}
-                title="Reset to default background"
-                onClick={removeBg}>
-                ↺
-              </button>
-            )}
           </div>
         </div>
 
@@ -2917,18 +2916,21 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
           </div>
         )}
 
-        {/* Chronicle Selector */}
+        {/* Chronicle Selector — filtered by active game type */}
         <div style={S.chronicleBar}>
-          {chronicles.length > 0 && (
-            <select style={S.select} value={activeChronicleId || ""}
-              onChange={e => { saveBeforeSwitch(); setActiveChronicleId(e.target.value); setActiveTab("dashboard"); }}>
-              {chronicles.map(c => {
-                const gt = GAME_TYPES.find(g => g.id === c.gameType);
-                return <option key={c.id} value={c.id}>{gt?.icon} {c.name}</option>;
-              })}
-            </select>
-          )}
-          <button style={S.btnFilled("#c41e3a")} onClick={() => { setModalData({ gameType: "vtm" }); setShowModal("newChronicle"); }}>
+          {(() => {
+            const filtered = activeGameType ? chronicles.filter(c => c.gameType === activeGameType) : chronicles;
+            return filtered.length > 0 && (
+              <select style={S.select} value={activeChronicleId || ""}
+                onChange={e => { saveBeforeSwitch(); setActiveChronicleId(e.target.value); setActiveTab("dashboard"); }}>
+                {filtered.map(c => {
+                  const gt = GAME_TYPES.find(g => g.id === c.gameType);
+                  return <option key={c.id} value={c.id}>{gt?.icon} {c.name}</option>;
+                })}
+              </select>
+            );
+          })()}
+          <button style={S.btnFilled(accent)} onClick={() => { setModalData({ gameType: activeGameType || "vtm" }); setShowModal("newChronicle"); }}>
             + New Chronicle
           </button>
         </div>
