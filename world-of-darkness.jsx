@@ -29,12 +29,12 @@ const GAME_SPLASH_DATA = {
 
 // Per-game-type default backgrounds — replace null with base64 data URIs when images are ready
 const GAME_BACKGROUNDS = {
-  vtm: "/backgrounds/vtm.jpg",
-  mta: "/backgrounds/mta.jpg",
-  wta: "/backgrounds/wta.jpg",
-  wto: "/backgrounds/wto.jpg",
-  htr: "/backgrounds/htr.jpg",
-  ctd: "/backgrounds/ctd.jpg",
+  vtm: "/backgrounds/vtm.png",
+  mta: "/backgrounds/mta.png",
+  wta: "/backgrounds/wta.png",
+  wto: "/backgrounds/wto.png",
+  htr: "/backgrounds/htr.png",
+  ctd: null, // placeholder until image is generated
   mixed: null,
 };
 
