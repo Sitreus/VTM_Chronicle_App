@@ -12,7 +12,18 @@ export default defineConfig({
         target: "https://api.anthropic.com",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/claude/, ""),
-        secure: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on("proxyReq", (proxyReq, req) => {
+            console.log(`[proxy] → ${req.method} ${req.url} → https://api.anthropic.com${proxyReq.path}`);
+          });
+          proxy.on("proxyRes", (proxyRes, req) => {
+            console.log(`[proxy] ← ${proxyRes.statusCode} for ${req.url}`);
+          });
+          proxy.on("error", (err, req) => {
+            console.error(`[proxy] ERROR for ${req.url}:`, err.message);
+          });
+        },
       },
     },
   },
