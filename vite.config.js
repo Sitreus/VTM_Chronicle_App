@@ -6,5 +6,14 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    // Proxy /api/claude requests to Anthropic to avoid CORS issues
+    proxy: {
+      "/api/claude": {
+        target: "https://api.anthropic.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/claude/, ""),
+        secure: true,
+      },
+    },
   },
 });
