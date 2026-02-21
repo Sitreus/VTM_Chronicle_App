@@ -73,18 +73,17 @@ const storageSet = async (key, val) => {
 
 // Centralized Claude API caller — handles auth, proxy, and errors
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const DEFAULT_PROXY = "/api/claude/v1/messages";
 const callClaude = async (apiKey, messages, { maxTokens = 4096, model = "claude-sonnet-4-20250514", proxyUrl } = {}) => {
   if (!apiKey) throw new Error("API key not set. Open Settings (\u2699) to add your Anthropic API key.");
-  const url = proxyUrl || ANTHROPIC_URL;
+  // Always use a proxy in the browser to avoid CORS issues.
+  // Default: local proxy at localhost:3001 (started alongside Vite via npm run dev).
+  const url = proxyUrl || DEFAULT_PROXY;
   const headers = {
     "Content-Type": "application/json",
     "x-api-key": apiKey,
     "anthropic-version": "2023-06-01",
   };
-  // When using a CORS proxy, add the target URL and dangerous-mode header
-  if (proxyUrl) {
-    headers["X-Proxy-Target"] = ANTHROPIC_URL;
-  }
   const res = await fetch(url, {
     method: "POST",
     headers,
@@ -2561,13 +2560,13 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
             </p>
           </div>
           <div>
-            <label style={{ color: "#b0a890", fontSize: 13, display: "block", marginBottom: 4 }}>CORS Proxy URL <span style={{ color: "#6a6050", fontSize: 11 }}>(optional)</span></label>
+            <label style={{ color: "#b0a890", fontSize: 13, display: "block", marginBottom: 4 }}>CORS Proxy URL <span style={{ color: "#6a6050", fontSize: 11 }}>(optional override)</span></label>
             <input style={{ ...S.input, fontFamily: "'Fira Code', monospace", fontSize: 12 }}
-              type="text" placeholder="https://your-cors-proxy.example.com/v1/messages"
+              type="text" placeholder="/api/claude/v1/messages"
               value={modalData.proxyUrl || ""}
               onChange={e => setModalData(d => ({ ...d, proxyUrl: e.target.value, _testResult: null }))} />
             <p style={{ color: "#8a8070", fontSize: 11, margin: "4px 0 0" }}>
-              If direct API calls are blocked by CORS, use a proxy server. Leave blank for direct access.
+              The built-in proxy handles CORS automatically. Leave blank — it just works. Only change this if you deploy the app elsewhere.
             </p>
           </div>
           {modalData._testResult && (
