@@ -71,6 +71,39 @@ const storageSet = async (key, val) => {
   } catch (e) { console.error("Storage error:", e); }
 };
 
+// Centralized Claude API caller — handles auth, proxy, and errors
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const callClaude = async (apiKey, messages, { maxTokens = 4096, model = "claude-sonnet-4-20250514", proxyUrl } = {}) => {
+  if (!apiKey) throw new Error("API key not set. Open Settings (\u2699) to add your Anthropic API key.");
+  const url = proxyUrl || ANTHROPIC_URL;
+  const headers = {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+  };
+  // When using a CORS proxy, add the target URL and dangerous-mode header
+  if (proxyUrl) {
+    headers["X-Proxy-Target"] = ANTHROPIC_URL;
+  }
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ model, max_tokens: maxTokens, messages }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const msg = body?.error?.message || `API error ${res.status}`;
+    if (res.status === 401) throw new Error("Invalid API key. Check your key in Settings (\u2699).");
+    if (res.status === 403) throw new Error("API access forbidden. Your key may lack permissions.");
+    if (res.status === 429) throw new Error("Rate limited. Please wait a moment and try again.");
+    if (res.status === 529) throw new Error("Anthropic API is overloaded. Please try again later.");
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || "Unknown API error");
+  return (data.content || []).map(i => i.text || "").join("\n");
+};
+
 // Repair truncated JSON — handles cases where AI output gets cut off
 const repairJSON = (text) => {
   let s = text.replace(/```json|```/g, "").trim();
@@ -158,17 +191,11 @@ const repairJSON = (text) => {
 };
 
 // Claude API helper — parse character markdown
-const parseCharacterMarkdown = async (mdText, gameType, apiKey) => {
+const parseCharacterMarkdown = async (mdText, gameType, apiKey, proxyUrl) => {
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        messages: [{
-          role: "user",
-          content: `You are a World of Darkness character sheet parser. Extract character data from this markdown document for a ${gameType} game.
+    const text = await callClaude(apiKey, [{
+      role: "user",
+      content: `You are a World of Darkness character sheet parser. Extract character data from this markdown document for a ${gameType} game.
 
 Markdown content:
 ${mdText}
@@ -197,11 +224,7 @@ Respond ONLY with a JSON object (no markdown, no backticks, no preamble):
 
 IMPORTANT: For mentionedNPCs, extract ALL named NPCs referenced in the document — sires, mentors, allies, enemies, contacts, lovers, rivals, anyone with a name who is not the main character themselves. 
 Only include fields where you find actual data. Leave empty string "" for missing text fields and empty array [] for missing array fields.`
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = (data.content || []).map(i => i.text || "").join("\n");
+    }], { proxyUrl });
     return repairJSON(text);
   } catch (e) {
     console.error("Character parse error:", e);
@@ -546,6 +569,7 @@ export default function WorldOfDarkness() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashPhase, setSplashPhase] = useState("welcome"); // "welcome" | "select"
   const [apiKey, setApiKey] = useState(""); // Anthropic API key
+  const [proxyUrl, setProxyUrl] = useState(""); // Optional CORS proxy URL
   // bgImage is now per-chronicle (stored in chronicleData) with DEFAULT_BG fallback
   const fileInputRef = useRef(null);
   const sessionFileRef = useRef(null);
@@ -595,6 +619,8 @@ export default function WorldOfDarkness() {
       }
       const savedKey = await storageGet("wod-api-key");
       if (savedKey) setApiKey(savedKey);
+      const savedProxy = await storageGet("wod-proxy-url");
+      if (savedProxy) setProxyUrl(savedProxy);
       setLoading(false);
     })();
   }, []);
@@ -718,13 +744,7 @@ export default function WorldOfDarkness() {
       const existingClocks = (chronicleData.clocks || []).map(c =>
         `"${c.name}" [${c.filled}/${c.segments} — ${c.type}]`
       ).join(", ") || "none";
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4096,
-          messages: [{
+      const text = await callClaude(apiKey, [{
             role: "user",
             content: `You are a World of Darkness chronicle keeper. Parse this session log from a ${activeChronicle?.gameType || "vtm"} chronicle called "${activeChronicle?.name || ""}".
 
@@ -771,22 +791,9 @@ CRITICAL RULES:
 - factionMentions: Factions, clans, organizations mentioned. Include their attitude toward the player characters if discernible.
 - Do NOT put player characters in newNPCs.
 - If no items for an array, use [].`
-          }]
-        })
-      });
-      
-      if (!res.ok) {
-        parseError = `API returned ${res.status}`;
-      } else {
-        const data = await res.json();
-        if (data.error) {
-          parseError = data.error.message || "API error";
-        } else {
-          const text = (data.content || []).map(i => i.text || "").join("\n");
-          parsed = repairJSON(text);
-          if (!parsed) parseError = "Could not parse AI response";
-        }
-      }
+          }], { proxyUrl });
+      parsed = repairJSON(text);
+      if (!parsed) parseError = "Could not parse AI response";
     } catch (e) {
       parseError = e.message || "Unknown error";
     }
@@ -1033,12 +1040,7 @@ CRITICAL RULES:
       const lastSessions = chronicleData.sessions.slice(-3);
       const summaries = lastSessions.map(s => `Session ${s.number}${s.title ? ` — ${s.title}` : ""}: ${s.summary || s.logText?.slice(0, 300) || "no summary"}`).join("\n\n");
       const threads = (chronicleData.plotThreads || []).filter(t => t.status === "active").map(t => t.title).join(", ");
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1024,
-          messages: [{ role: "user", content: `You are a dramatic narrator for a ${activeChronicle?.gameType || "vtm"} World of Darkness chronicle called "${activeChronicle?.name || ""}".
+      const text = await callClaude(apiKey, [{ role: "user", content: `You are a dramatic narrator for a ${activeChronicle?.gameType || "vtm"} World of Darkness chronicle called "${activeChronicle?.name || ""}".
 
 Write a "Previously on..." TV-style recap based on these recent sessions. Make it atmospheric, ominous, and dramatic — like the intro to a gothic TV show. Use present tense. 3-5 short paragraphs. No headers. No quotes around the text.
 
@@ -1047,17 +1049,11 @@ ${summaries}
 
 Active plot threads: ${threads || "none tracked"}
 
-Write the recap now:` }]
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.content?.map(c => c.text || "").join("") || "";
-        setRecapText(text);
-        setShowModal("recap");
-      }
+Write the recap now:` }], { maxTokens: 1024, proxyUrl });
+      setRecapText(text);
+      setShowModal("recap");
     } catch (e) {
-      setParseStatus({ type: "error", msg: "Failed to generate recap. Check your connection." });
+      setParseStatus({ type: "error", msg: e.message || "Failed to generate recap." });
     }
     setParsing(false);
   };
@@ -1321,7 +1317,7 @@ Write the recap now:` }]
     setParsing(true);
     setModalData(d => ({ ...d, _rawMarkdown: text }));
     
-    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm", apiKey);
+    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm", apiKey, proxyUrl);
     
     if (parsed) {
       // Build extended notes from extra parsed fields
@@ -1367,7 +1363,7 @@ Write the recap now:` }]
     if (!apiKey) { setParseStatus({ type: "error", msg: "API key required. Open Settings (⚙) to add your Anthropic API key." }); setParsing(false); return; }
     setParsing(true);
 
-    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm", apiKey);
+    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm", apiKey, proxyUrl);
 
     if (parsed) {
       const extraParts = [];
@@ -2546,17 +2542,67 @@ Write the recap now:` }]
     if (showModal === "settings") return (
       <Modal onClose={() => { setShowModal(null); setModalData({}); }}>
         <div style={{ ...S.cardHeader, color: accent }}>API Settings</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={{ color: "#b0a890", fontSize: 13 }}>Anthropic API Key</label>
-          <input style={S.input} type="password" placeholder="sk-ant-..." value={modalData.apiKey || ""}
-            onChange={e => setModalData(d => ({ ...d, apiKey: e.target.value }))} autoFocus />
-          <p style={{ color: "#8a8070", fontSize: 12, margin: 0 }}>Required for AI-powered session parsing, character import, and recaps.</p>
-          <button style={S.btnFilled(accent)} onClick={async () => {
-            const key = (modalData.apiKey || "").trim();
-            setApiKey(key);
-            await storageSet("wod-api-key", key);
-            setShowModal(null); setModalData({});
-          }}>Save API Key</button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={{ color: "#b0a890", fontSize: 13, display: "block", marginBottom: 4 }}>Anthropic API Key</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input style={{ ...S.input, flex: 1, fontFamily: "'Fira Code', monospace", fontSize: 13 }}
+                type={modalData._showKey ? "text" : "password"} placeholder="sk-ant-api03-..."
+                value={modalData.apiKey || ""}
+                onChange={e => setModalData(d => ({ ...d, apiKey: e.target.value, _testResult: null }))} autoFocus />
+              <button style={{ ...S.bgBtn(false), padding: "6px 10px", fontSize: 16, cursor: "pointer" }}
+                title={modalData._showKey ? "Hide key" : "Show key"}
+                onClick={() => setModalData(d => ({ ...d, _showKey: !d._showKey }))}>
+                {modalData._showKey ? "\u{1F441}" : "\u{1F512}"}
+              </button>
+            </div>
+            <p style={{ color: "#8a8070", fontSize: 11, margin: "4px 0 0" }}>
+              Get your key at <span style={{ color: accent }}>console.anthropic.com/settings/keys</span>
+            </p>
+          </div>
+          <div>
+            <label style={{ color: "#b0a890", fontSize: 13, display: "block", marginBottom: 4 }}>CORS Proxy URL <span style={{ color: "#6a6050", fontSize: 11 }}>(optional)</span></label>
+            <input style={{ ...S.input, fontFamily: "'Fira Code', monospace", fontSize: 12 }}
+              type="text" placeholder="https://your-cors-proxy.example.com/v1/messages"
+              value={modalData.proxyUrl || ""}
+              onChange={e => setModalData(d => ({ ...d, proxyUrl: e.target.value, _testResult: null }))} />
+            <p style={{ color: "#8a8070", fontSize: 11, margin: "4px 0 0" }}>
+              If direct API calls are blocked by CORS, use a proxy server. Leave blank for direct access.
+            </p>
+          </div>
+          {modalData._testResult && (
+            <div style={{
+              padding: "8px 12px", borderRadius: 6, fontSize: 13,
+              background: modalData._testResult.ok ? "rgba(74,140,63,0.15)" : "rgba(196,30,58,0.15)",
+              color: modalData._testResult.ok ? "#4a8c3f" : "#c41e3a",
+              border: `1px solid ${modalData._testResult.ok ? "rgba(74,140,63,0.3)" : "rgba(196,30,58,0.3)"}`,
+            }}>
+              {modalData._testResult.ok ? "\u2713 " : "\u2717 "}{modalData._testResult.msg}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...S.btnFilled(accent), flex: 1 }} onClick={async () => {
+              const key = (modalData.apiKey || "").trim();
+              const proxy = (modalData.proxyUrl || "").trim();
+              if (!key) { setModalData(d => ({ ...d, _testResult: { ok: false, msg: "Please enter an API key." } })); return; }
+              setModalData(d => ({ ...d, _testResult: { ok: true, msg: "Testing connection..." } }));
+              try {
+                await callClaude(key, [{ role: "user", content: "Say OK" }], { maxTokens: 8, proxyUrl: proxy || undefined });
+                setModalData(d => ({ ...d, _testResult: { ok: true, msg: "Connection successful! API key is valid." } }));
+              } catch (e) {
+                setModalData(d => ({ ...d, _testResult: { ok: false, msg: e.message } }));
+              }
+            }}>Test Connection</button>
+            <button style={{ ...S.btnFilled(accent), flex: 1 }} onClick={async () => {
+              const key = (modalData.apiKey || "").trim();
+              const proxy = (modalData.proxyUrl || "").trim();
+              setApiKey(key);
+              setProxyUrl(proxy);
+              await storageSet("wod-api-key", key);
+              await storageSet("wod-proxy-url", proxy);
+              setShowModal(null); setModalData({});
+            }}>Save Settings</button>
+          </div>
         </div>
       </Modal>
     );
@@ -2838,7 +2884,7 @@ Write the recap now:` }]
               onClick={() => { setShowSplash(true); setSplashPhase("select"); }}>
               ◈ Selection Menu
             </button>
-            <button style={{ ...S.bgBtn(false), padding: "6px 12px" }} title="API Settings" onClick={() => { setShowModal("settings"); setModalData({ apiKey }); }}>⚙</button>
+            <button style={{ ...S.bgBtn(false), padding: "6px 12px" }} title="API Settings" onClick={() => { setShowModal("settings"); setModalData({ apiKey, proxyUrl }); }}>⚙</button>
             <button style={S.bgBtn(!!chronicleData?.bgImage)} onClick={() => bgInputRef.current?.click()}>
               <span style={{ fontSize: 14 }}>🖼</span> {chronicleData?.bgImage ? "Change BG" : "Custom BG"}
             </button>
@@ -2852,6 +2898,25 @@ Write the recap now:` }]
             )}
           </div>
         </div>
+
+        {/* API Key Setup Banner */}
+        {!apiKey && (
+          <div style={{
+            background: "linear-gradient(135deg, rgba(196,30,58,0.1) 0%, rgba(123,47,190,0.1) 100%)",
+            border: "1px solid rgba(196,30,58,0.25)", borderRadius: 8,
+            padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <span style={{ fontSize: 20 }}>🔑</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: "#e8d8c0", fontSize: 14, fontWeight: 600 }}>API Key Required</div>
+              <div style={{ color: "#a09080", fontSize: 12 }}>Add your Anthropic API key to enable AI-powered session parsing, character imports, and recaps.</div>
+            </div>
+            <button style={{ ...S.btnFilled(accent), padding: "6px 16px", fontSize: 12, whiteSpace: "nowrap" }}
+              onClick={() => { setShowModal("settings"); setModalData({ apiKey, proxyUrl }); }}>
+              Set Up API Key
+            </button>
+          </div>
+        )}
 
         {/* Chronicle Selector */}
         <div style={S.chronicleBar}>
