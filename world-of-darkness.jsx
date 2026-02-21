@@ -158,11 +158,11 @@ const repairJSON = (text) => {
 };
 
 // Claude API helper — parse character markdown
-const parseCharacterMarkdown = async (mdText, gameType) => {
+const parseCharacterMarkdown = async (mdText, gameType, apiKey) => {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 4096,
@@ -201,7 +201,7 @@ Only include fields where you find actual data. Leave empty string "" for missin
       })
     });
     const data = await res.json();
-    const text = data.content.map(i => i.text || "").join("\n");
+    const text = (data.content || []).map(i => i.text || "").join("\n");
     return repairJSON(text);
   } catch (e) {
     console.error("Character parse error:", e);
@@ -224,8 +224,8 @@ const stripMarkdown = (text) => {
     .replace(/^>\s+/gm, "")               // blockquotes
     .replace(/^[-*+]\s+/gm, "• ")         // unordered lists
     .replace(/^\d+\.\s+/gm, "")           // ordered lists
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, "") // images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
     .replace(/^---+$/gm, "")              // horizontal rules
     .replace(/\n{3,}/g, "\n\n")           // excess newlines
     .trim();
@@ -545,6 +545,7 @@ export default function WorldOfDarkness() {
   const [confirmAction, setConfirmAction] = useState(null); // {msg, onConfirm}
   const [showSplash, setShowSplash] = useState(true);
   const [splashPhase, setSplashPhase] = useState("welcome"); // "welcome" | "select"
+  const [apiKey, setApiKey] = useState(""); // Anthropic API key
   // bgImage is now per-chronicle (stored in chronicleData) with DEFAULT_BG fallback
   const fileInputRef = useRef(null);
   const sessionFileRef = useRef(null);
@@ -592,6 +593,8 @@ export default function WorldOfDarkness() {
           await window.storage.delete("wod-background");
         } catch {}
       }
+      const savedKey = await storageGet("wod-api-key");
+      if (savedKey) setApiKey(savedKey);
       setLoading(false);
     })();
   }, []);
@@ -689,6 +692,7 @@ export default function WorldOfDarkness() {
   const addSession = async () => {
     const { title, logText } = modalData;
     if (!logText?.trim() || !chronicleData) return;
+    if (!apiKey) { setParseStatus({ type: "error", msg: "API key required. Open Settings (⚙) to add your Anthropic API key." }); return; }
     setParsing(true);
     setParseStatus(null);
 
@@ -716,7 +720,7 @@ export default function WorldOfDarkness() {
       ).join(", ") || "none";
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 4096,
@@ -1022,6 +1026,7 @@ CRITICAL RULES:
   // ─── "Previously on..." Recap ─────
   const generateRecap = async () => {
     if (!chronicleData?.sessions?.length) return;
+    if (!apiKey) { setParseStatus({ type: "error", msg: "API key required. Open Settings (⚙) to add your Anthropic API key." }); return; }
     setParsing(true);
     setRecapText(null);
     try {
@@ -1030,7 +1035,7 @@ CRITICAL RULES:
       const threads = (chronicleData.plotThreads || []).filter(t => t.status === "active").map(t => t.title).join(", ");
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1024,
           messages: [{ role: "user", content: `You are a dramatic narrator for a ${activeChronicle?.gameType || "vtm"} World of Darkness chronicle called "${activeChronicle?.name || ""}".
@@ -1088,6 +1093,7 @@ Write the recap now:` }]
     if (idx < 0) return;
     const order = ["active", "cold", "resolved"];
     const cur = order.indexOf(threads[idx].status);
+    if (cur < 0) return;
     threads[idx] = { ...threads[idx], status: order[(cur + 1) % 3] };
     await saveChronicleData({ ...chronicleData, plotThreads: threads });
   };
@@ -1311,10 +1317,11 @@ Write the recap now:` }]
     const file = e.target.files?.[0];
     if (!file) return;
     const text = await readTextFile(file);
+    if (!apiKey) { setParseStatus({ type: "error", msg: "API key required. Open Settings (⚙) to add your Anthropic API key." }); setParsing(false); return; }
     setParsing(true);
     setModalData(d => ({ ...d, _rawMarkdown: text }));
     
-    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm");
+    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm", apiKey);
     
     if (parsed) {
       // Build extended notes from extra parsed fields
@@ -1357,9 +1364,10 @@ Write the recap now:` }]
     const file = e.target.files?.[0];
     if (!file || !chronicleData) return;
     const text = await readTextFile(file);
+    if (!apiKey) { setParseStatus({ type: "error", msg: "API key required. Open Settings (⚙) to add your Anthropic API key." }); setParsing(false); return; }
     setParsing(true);
 
-    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm");
+    const parsed = await parseCharacterMarkdown(text, activeChronicle?.gameType || "vtm", apiKey);
 
     if (parsed) {
       const extraParts = [];
@@ -2535,6 +2543,23 @@ Write the recap now:` }]
       </Modal>
     );
 
+    if (showModal === "settings") return (
+      <Modal onClose={() => { setShowModal(null); setModalData({}); }}>
+        <div style={{ ...S.cardHeader, color: accent }}>API Settings</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ color: "#b0a890", fontSize: 13 }}>Anthropic API Key</label>
+          <input style={S.input} type="password" placeholder="sk-ant-..." value={modalData.apiKey || ""}
+            onChange={e => setModalData(d => ({ ...d, apiKey: e.target.value }))} autoFocus />
+          <p style={{ color: "#8a8070", fontSize: 12, margin: 0 }}>Required for AI-powered session parsing, character import, and recaps.</p>
+          <button style={S.btnFilled(accent)} onClick={async () => {
+            const key = (modalData.apiKey || "").trim();
+            setApiKey(key);
+            await storageSet("wod-api-key", key);
+            setShowModal(null); setModalData({});
+          }}>Save API Key</button>
+        </div>
+      </Modal>
+    );
     return null;
   };
 
@@ -2813,6 +2838,7 @@ Write the recap now:` }]
               onClick={() => { setShowSplash(true); setSplashPhase("select"); }}>
               ◈ Selection Menu
             </button>
+            <button style={{ ...S.bgBtn(false), padding: "6px 12px" }} title="API Settings" onClick={() => { setShowModal("settings"); setModalData({ apiKey }); }}>⚙</button>
             <button style={S.bgBtn(!!chronicleData?.bgImage)} onClick={() => bgInputRef.current?.click()}>
               <span style={{ fontSize: 14 }}>🖼</span> {chronicleData?.bgImage ? "Change BG" : "Custom BG"}
             </button>
