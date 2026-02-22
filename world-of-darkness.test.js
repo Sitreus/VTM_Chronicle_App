@@ -380,9 +380,9 @@ describe("Source file verification: all fixes and API integration", () => {
     expect(source).toContain("Save Settings");
   });
 
-  it("has API key setup banner for first-time users", () => {
-    expect(source).toContain("API Key Required");
-    expect(source).toContain("Set Up API Key");
+  it("has API key setup button on splash screen", () => {
+    expect(source).toContain("Set API Key");
+    expect(source).toContain('setShowModal("settings")');
   });
 
   it("passes proxyUrl through to all API calls", () => {
