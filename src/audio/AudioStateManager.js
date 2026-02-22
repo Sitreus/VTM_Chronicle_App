@@ -5,7 +5,7 @@
  * the audio layers accordingly. It maps UI events to audio actions:
  *
  *   Splash screen visible  → DroneLayer starts, evolves on idle
- *   "Enter the Darkness"   → TransitionLayer sting, drone fades
+ *   "Enter the Darkness"   → Stinger + intro music start, drone fades
  *   Game line selected      → TransitionLayer sting, AmbientLayer crossfades
  *   Tab switched            → subtle UI sound (optional)
  *   Splash dismissed        → Ambient continues in main app
@@ -165,18 +165,40 @@ export default class AudioStateManager {
   // ─── State Events ───────────────────────────────────────────
 
   /**
-   * Called when the splash screen becomes visible.
-   * Plays intro_splash_screen_start immediately, then schedules
-   * intro_splash_screen_loop to trigger after 24 seconds.
+   * Called when the card selection screen becomes visible.
+   * Intro audio is now started from onEnterDarkness() (welcome screen)
+   * so this only tracks splash state.
    */
   onSplashEnter() {
+    if (!this.isReady) return;
+    this._splashActive = true;
+  }
+
+  /**
+   * Called when "Enter the Darkness" is clicked (welcome screen).
+   * Plays the button press sound, the stinger, and starts the intro music.
+   * The stinger plays to full duration (its tail blends with the loop
+   * after 24 seconds). The loop starts without fade-in for a seamless blend.
+   */
+  async onEnterDarkness(gameLineId = null) {
     if (!this.isReady) return;
     this._splashActive = true;
 
     // Stop any previously active intro audio
     this._stopIntroAudio(0);
 
-    // Play intro start sound
+    // Play button press sound
+    if (this.engine.hasBuffer('intro_press')) {
+      this.transition.play('intro_press', { volume: 1 });
+    }
+
+    // Play stinger — do NOT fade it out; after ~24s its tail
+    // blends naturally with the loop start
+    if (this.engine.hasBuffer('intro_stinger')) {
+      this.transition.play('intro_stinger', { volume: 1 });
+    }
+
+    // Play intro start music immediately (on the welcome screen)
     if (this.engine.hasBuffer('intro_start')) {
       this._introStartHandle = this.engine.play('intro_start', {
         loop: false,
@@ -185,7 +207,7 @@ export default class AudioStateManager {
       });
     }
 
-    // Schedule loop to start after 24 seconds
+    // Schedule loop after 24 seconds — no fade-in, seamless blend
     this._introLoopTimer = setTimeout(() => {
       this._introLoopTimer = null;
       if (!this._splashActive || !this.isReady) return;
@@ -193,38 +215,10 @@ export default class AudioStateManager {
         this._introLoopHandle = this.engine.play('intro_loop', {
           loop: true,
           volume: 1,
-          fadeIn: 1.0,
+          fadeIn: 0,
         });
       }
     }, 24000);
-  }
-
-  /**
-   * Called when "Enter the Darkness" is clicked.
-   * Plays the button press sound and the stinger.
-   * Fades out any active intro_start or intro_loop over 1.3 seconds.
-   */
-  async onEnterDarkness(gameLineId = null) {
-    if (!this.isReady) return;
-
-    // Cancel the loop timer if it hasn't fired yet
-    if (this._introLoopTimer) {
-      clearTimeout(this._introLoopTimer);
-      this._introLoopTimer = null;
-    }
-
-    // Play button press sound
-    if (this.engine.hasBuffer('intro_press')) {
-      this.transition.play('intro_press', { volume: 1 });
-    }
-
-    // Play stinger (masks the transition)
-    if (this.engine.hasBuffer('intro_stinger')) {
-      this.transition.play('intro_stinger', { volume: 1 });
-    }
-
-    // Fade out active intro sounds over 1.3 seconds
-    this._stopIntroAudio(1.3);
 
     // Fade out drone if it was active
     if (this.drone.isActive) {

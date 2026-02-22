@@ -88,10 +88,9 @@ export default function WorldOfDarkness() {
     })();
   }, []);
 
-  // Audio: start intro ambience when card selection screen appears.
-  // Triggered on "select" phase (not "welcome") because AudioContext requires
-  // a user gesture to initialize — the first gesture is "Enter the Darkness".
-  // Depends on audio.isReady so it retries once initialization completes.
+  // Audio: track splash state when card selection screen appears.
+  // Intro music now starts from onEnterDarkness (welcome screen button click).
+  // This just ensures the splash-active flag is set for state tracking.
   useEffect(() => {
     if (showSplash && splashPhase === "select") {
       audio.onSplashEnter();
