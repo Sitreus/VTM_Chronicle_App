@@ -26,6 +26,12 @@ export default function SplashScreen({
           from { opacity: 1; transform: scale(1); }
           to { opacity: 0; transform: scale(1.08); pointer-events: none; }
         }
+        @keyframes stingerFlash {
+          0% { opacity: 0; }
+          15% { opacity: 0.08; }
+          50% { opacity: 0.03; }
+          100% { opacity: 0; }
+        }
         @keyframes splashSelectIn {
           from { opacity: 0; transform: scale(0.95); }
           to { opacity: 1; transform: scale(1); }
@@ -151,7 +157,7 @@ export default function SplashScreen({
       {splashPhase === "welcome" || splashPhase === "fading" ? (
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center",
-          animation: splashPhase === "fading" ? "splashFadeOut 0.6s ease forwards" : "splashFadeIn 2s ease forwards",
+          animation: splashPhase === "fading" ? "splashFadeOut 1.125s ease forwards" : "splashFadeIn 2s ease forwards",
         }}>
           <div style={{
             fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 400,
@@ -175,7 +181,7 @@ export default function SplashScreen({
             animation: "splashLineExpand 2s ease 0.8s both",
             marginBottom: 40,
           }} />
-          <button onClick={() => { setSplashPhase("fading"); audio?.onEnterDarkness(); setTimeout(() => setSplashPhase("select"), 600); }} style={{
+          <button onClick={() => { setSplashPhase("fading"); audio?.onEnterDarkness(); setTimeout(() => setSplashPhase("select"), 1125); }} style={{
             background: "none", border: "1px solid rgba(196,30,58,0.3)",
             color: "#c4a884", padding: "14px 40px", borderRadius: 4,
             fontFamily: "'Cinzel', serif", fontSize: 16, letterSpacing: 4,

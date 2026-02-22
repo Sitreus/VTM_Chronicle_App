@@ -54,6 +54,11 @@ function buildManifest() {
     manifest.push({ name: `ambient_${gl}`, url: `/audio/ambient_${gl}.ogg` });
     manifest.push({ name: `sting_${gl}`, url: `/audio/sting_${gl}.ogg` });
   }
+  // Intro splash screen audio
+  manifest.push({ name: 'intro_start', url: '/audio/intro_splash_screen_start.ogg' });
+  manifest.push({ name: 'intro_loop', url: '/audio/intro_splash_screen_loop.ogg' });
+  manifest.push({ name: 'intro_press', url: '/audio/intro_splash_screen_press_button.ogg' });
+  manifest.push({ name: 'intro_stinger', url: '/audio/intro_splash_screen_stinger.ogg' });
   // Generic UI sounds
   manifest.push({ name: 'ui_enter', url: '/audio/ui_enter.ogg' });
   manifest.push({ name: 'ui_click', url: '/audio/ui_click.ogg' });
@@ -76,6 +81,11 @@ export default class AudioStateManager {
     this._splashActive = false;
     this._muted = false;
     this._volume = 0.8;
+
+    // Intro splash audio state
+    this._introStartHandle = null;   // handle from engine.play
+    this._introLoopHandle = null;
+    this._introLoopTimer = null;     // setTimeout id for the 24s loop trigger
   }
 
   // ─── Lifecycle ──────────────────────────────────────────────
@@ -108,6 +118,7 @@ export default class AudioStateManager {
    * Clean up everything.
    */
   async destroy() {
+    this._stopIntroAudio(0);
     this.drone.stop();
     this.ambient.stop();
     this.transition.stop();
@@ -138,37 +149,89 @@ export default class AudioStateManager {
 
   /**
    * Called when the splash screen becomes visible.
-   * Starts the evolving drone.
+   * Plays intro_splash_screen_start immediately, then schedules
+   * intro_splash_screen_loop to trigger after 24 seconds.
    */
   onSplashEnter() {
     if (!this.isReady) return;
     this._splashActive = true;
 
-    // Start drone — use game-specific if available, else default
-    const droneName = this._resolveName('drone');
-    const harmonicName = this._resolveName('harmonic');
+    // Stop any previously active intro audio
+    this._stopIntroAudio(0);
 
-    if (droneName) {
-      this.drone.start(droneName, harmonicName);
+    // Play intro start sound
+    if (this.engine.hasBuffer('intro_start')) {
+      this._introStartHandle = this.engine.play('intro_start', {
+        loop: false,
+        volume: 1,
+        fadeIn: 0,
+      });
     }
+
+    // Schedule loop to start after 24 seconds
+    this._introLoopTimer = setTimeout(() => {
+      this._introLoopTimer = null;
+      if (!this._splashActive || !this.isReady) return;
+      if (this.engine.hasBuffer('intro_loop')) {
+        this._introLoopHandle = this.engine.play('intro_loop', {
+          loop: true,
+          volume: 1,
+          fadeIn: 1.0,
+        });
+      }
+    }, 24000);
   }
 
   /**
    * Called when "Enter the Darkness" is clicked.
-   * Plays a transition sound, fades the drone, transitions to ambient.
-   *
-   * @param {string} gameLineId — e.g. 'vtm', 'mta' (optional if not yet selected)
+   * Plays the button press sound and the stinger.
+   * Fades out any active intro_start or intro_loop over 1.3 seconds.
    */
   async onEnterDarkness(gameLineId = null) {
     if (!this.isReady) return;
 
-    // Play UI enter sound
-    if (this.engine.hasBuffer('ui_enter')) {
-      this.transition.play('ui_enter', { volume: 0.5 });
+    // Cancel the loop timer if it hasn't fired yet
+    if (this._introLoopTimer) {
+      clearTimeout(this._introLoopTimer);
+      this._introLoopTimer = null;
     }
 
-    // Fade out drone
-    await this.drone.fadeOut(1.5);
+    // Play button press sound
+    if (this.engine.hasBuffer('intro_press')) {
+      this.transition.play('intro_press', { volume: 1 });
+    }
+
+    // Play stinger (masks the transition)
+    if (this.engine.hasBuffer('intro_stinger')) {
+      this.transition.play('intro_stinger', { volume: 1 });
+    }
+
+    // Fade out active intro sounds over 1.3 seconds
+    this._stopIntroAudio(1.3);
+
+    // Fade out drone if it was active
+    if (this.drone.isActive) {
+      this.drone.fadeOut(1.3);
+    }
+  }
+
+  /**
+   * Stop all intro splash audio.
+   * @param {number} fadeOut — fade-out duration in seconds (0 = immediate)
+   */
+  _stopIntroAudio(fadeOut = 0) {
+    if (this._introLoopTimer) {
+      clearTimeout(this._introLoopTimer);
+      this._introLoopTimer = null;
+    }
+    if (this._introStartHandle) {
+      this.engine.stop(this._introStartHandle.id, fadeOut);
+      this._introStartHandle = null;
+    }
+    if (this._introLoopHandle) {
+      this.engine.stop(this._introLoopHandle.id, fadeOut);
+      this._introLoopHandle = null;
+    }
   }
 
   /**
@@ -205,10 +268,13 @@ export default class AudioStateManager {
 
   /**
    * Called when splash screen is dismissed and main app is shown.
-   * The ambient continues; drone is stopped.
+   * The ambient continues; drone and intro audio are stopped.
    */
   onSplashExit() {
     this._splashActive = false;
+
+    // Stop any lingering intro audio
+    this._stopIntroAudio(0.5);
 
     if (this.drone.isActive) {
       this.drone.fadeOut(1.5);
