@@ -88,6 +88,33 @@ export default function SplashScreen({
           color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.3);
           background: rgba(255,255,255,0.03);
         }
+        @keyframes smokeDrift1 {
+          0% { transform: translate(0, 0) scale(1); opacity: 0.035; }
+          25% { transform: translate(5%, -3%) scale(1.05); opacity: 0.05; }
+          50% { transform: translate(-3%, 5%) scale(0.95); opacity: 0.03; }
+          75% { transform: translate(-5%, -2%) scale(1.02); opacity: 0.045; }
+          100% { transform: translate(0, 0) scale(1); opacity: 0.035; }
+        }
+        @keyframes smokeDrift2 {
+          0% { transform: translate(0, 0) scale(1.05); opacity: 0.03; }
+          33% { transform: translate(-6%, 4%) scale(0.95); opacity: 0.045; }
+          66% { transform: translate(4%, -5%) scale(1.08); opacity: 0.025; }
+          100% { transform: translate(0, 0) scale(1.05); opacity: 0.03; }
+        }
+        @keyframes smokeDrift3 {
+          0% { transform: translate(0, 0) scale(0.95); opacity: 0.025; }
+          20% { transform: translate(4%, 3%) scale(1.02); opacity: 0.04; }
+          40% { transform: translate(-2%, -4%) scale(1.08); opacity: 0.03; }
+          60% { transform: translate(-5%, 2%) scale(0.98); opacity: 0.045; }
+          80% { transform: translate(3%, -3%) scale(1.05); opacity: 0.025; }
+          100% { transform: translate(0, 0) scale(0.95); opacity: 0.025; }
+        }
+        @keyframes smokeDrift4 {
+          0% { transform: translate(0, 0) scale(1.02); opacity: 0.02; }
+          30% { transform: translate(3%, -5%) scale(0.96); opacity: 0.04; }
+          70% { transform: translate(-4%, 3%) scale(1.06); opacity: 0.03; }
+          100% { transform: translate(0, 0) scale(1.02); opacity: 0.02; }
+        }
         @keyframes transitionFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes bloodDrip {
           0% { transform: translateY(-100%); }
@@ -126,6 +153,34 @@ export default function SplashScreen({
         position: "absolute", inset: 0, opacity: 0.04,
         backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
       }} />
+
+      {/* Subtle moving smoke VFX */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 }}>
+        <div style={{
+          position: "absolute", top: "-20%", left: "-10%", width: "70%", height: "70%",
+          background: "radial-gradient(ellipse at 40% 50%, rgba(200,200,210,0.07) 0%, transparent 70%)",
+          filter: "blur(80px)",
+          animation: "smokeDrift1 25s ease-in-out infinite",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "-15%", right: "-10%", width: "60%", height: "65%",
+          background: "radial-gradient(ellipse at 60% 50%, rgba(196,30,58,0.05) 0%, transparent 70%)",
+          filter: "blur(90px)",
+          animation: "smokeDrift2 32s ease-in-out infinite",
+        }} />
+        <div style={{
+          position: "absolute", top: "10%", right: "-5%", width: "55%", height: "55%",
+          background: "radial-gradient(ellipse at 50% 40%, rgba(180,170,190,0.06) 0%, transparent 70%)",
+          filter: "blur(100px)",
+          animation: "smokeDrift3 38s ease-in-out infinite",
+        }} />
+        <div style={{
+          position: "absolute", top: "30%", left: "20%", width: "50%", height: "50%",
+          background: "radial-gradient(ellipse at 50% 50%, rgba(140,20,40,0.04) 0%, transparent 65%)",
+          filter: "blur(110px)",
+          animation: "smokeDrift4 28s ease-in-out infinite",
+        }} />
+      </div>
 
       {/* API Key setup button */}
       <button style={{
