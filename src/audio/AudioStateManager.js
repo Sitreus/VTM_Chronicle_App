@@ -108,6 +108,15 @@ export default class AudioStateManager {
   }
 
   /**
+   * Resume a suspended AudioContext.
+   * Must be called from a user gesture (click/keydown) to satisfy
+   * browser autoplay policy.
+   */
+  async resume() {
+    await this.engine.resume();
+  }
+
+  /**
    * Check if the audio system is ready to play.
    */
   get isReady() {
