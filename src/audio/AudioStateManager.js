@@ -44,9 +44,18 @@ import TransitionLayer from './layers/TransitionLayer.js';
 // Game lines that have audio assets
 const GAME_LINES = ['vtm', 'mta', 'wta', 'wto', 'htr', 'ctd'];
 
-// Audio file manifest — maps asset names to file paths.
-// Only entries whose files actually exist in /public/audio/ will load.
-function buildManifest() {
+// Priority manifest — splash screen audio loaded first for fast response.
+function buildPriorityManifest() {
+  return [
+    { name: 'intro_start', url: '/audio/intro_splash_screen_start.ogg' },
+    { name: 'intro_loop', url: '/audio/intro_splash_screen_loop.ogg' },
+    { name: 'intro_press', url: '/audio/intro_splash_screen_press_button.ogg' },
+    { name: 'intro_stinger', url: '/audio/intro_splash_screen_stinger.ogg' },
+  ];
+}
+
+// Background manifest — game-specific audio loaded after splash is ready.
+function buildBackgroundManifest() {
   const manifest = [];
   for (const gl of GAME_LINES) {
     manifest.push({ name: `drone_${gl}`, url: `/audio/drone_${gl}.ogg` });
@@ -54,16 +63,11 @@ function buildManifest() {
     manifest.push({ name: `ambient_${gl}`, url: `/audio/ambient_${gl}.ogg` });
     manifest.push({ name: `sting_${gl}`, url: `/audio/sting_${gl}.ogg` });
   }
-  // Intro splash screen audio
-  manifest.push({ name: 'intro_start', url: '/audio/intro_splash_screen_start.ogg' });
-  manifest.push({ name: 'intro_loop', url: '/audio/intro_splash_screen_loop.ogg' });
-  manifest.push({ name: 'intro_press', url: '/audio/intro_splash_screen_press_button.ogg' });
-  manifest.push({ name: 'intro_stinger', url: '/audio/intro_splash_screen_stinger.ogg' });
   // Generic UI sounds
   manifest.push({ name: 'ui_enter', url: '/audio/ui_enter.ogg' });
   manifest.push({ name: 'ui_click', url: '/audio/ui_click.ogg' });
   manifest.push({ name: 'ui_transition', url: '/audio/ui_transition.ogg' });
-  // Generic fallback drone/ambient (used when game-specific files aren't available)
+  // Generic fallback drone/ambient
   manifest.push({ name: 'drone_default', url: '/audio/drone_default.ogg' });
   manifest.push({ name: 'ambient_default', url: '/audio/ambient_default.ogg' });
   return manifest;
@@ -100,11 +104,15 @@ export default class AudioStateManager {
     await this.engine.init();
     this._initialized = true;
 
-    // Load manifest — failures are silently logged (missing files are OK)
-    const manifest = buildManifest();
-    await this.engine.loadManifest(manifest);
+    // Load splash screen audio first for immediate playback
+    const priority = buildPriorityManifest();
+    await this.engine.loadManifest(priority);
 
     this.engine.setMasterVolume(this._volume);
+
+    // Load game-specific audio in background (failures are expected for missing files)
+    const background = buildBackgroundManifest();
+    this.engine.loadManifest(background);
   }
 
   /**
@@ -252,6 +260,9 @@ export default class AudioStateManager {
   async onGameLineSelect(gameLineId) {
     if (!this.isReady) return;
     this._currentGameLine = gameLineId;
+
+    // Fade out intro splash audio (playing during card selection)
+    this._stopIntroAudio(1.3);
 
     // Play game-line sting
     const stingName = `sting_${gameLineId}`;

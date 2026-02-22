@@ -88,11 +88,12 @@ export default function WorldOfDarkness() {
     })();
   }, []);
 
-  // Audio: start drone when splash screen is visible.
-  // Depends on audio.isReady so it retries once the AudioContext resumes
-  // (which requires a user gesture due to browser autoplay policy).
+  // Audio: start intro ambience when card selection screen appears.
+  // Triggered on "select" phase (not "welcome") because AudioContext requires
+  // a user gesture to initialize — the first gesture is "Enter the Darkness".
+  // Depends on audio.isReady so it retries once initialization completes.
   useEffect(() => {
-    if (showSplash && splashPhase === "welcome") {
+    if (showSplash && splashPhase === "select") {
       audio.onSplashEnter();
     }
   }, [showSplash, splashPhase, audio.isReady]);
