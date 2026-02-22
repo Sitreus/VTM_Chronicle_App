@@ -56,10 +56,18 @@ export default function useAudio() {
         initPromiseRef.current = null;
       });
     }
-    await initPromiseRef.current;
 
-    // Resume a suspended AudioContext (succeeds when called from a user gesture)
+    // Resume the AudioContext BEFORE awaiting the full init (manifest loading).
+    // This is critical: browser autoplay policy requires AudioContext.resume()
+    // to be called synchronously from a user gesture. If we await the manifest
+    // load first (~40 fetch requests), the gesture window expires and resume
+    // silently fails, leaving the context permanently suspended.
+    // engine.init() creates the AudioContext synchronously before its first
+    // yield, so _ctx exists by the time we reach this line.
     await manager.resume();
+
+    // Now wait for the full init (including manifest loading) to complete
+    await initPromiseRef.current;
 
     // Update reactive state so dependent useEffects re-fire
     if (manager.isReady && !isReady) {
