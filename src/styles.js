@@ -1,0 +1,147 @@
+export const S = {
+  app: {
+    minHeight: "100vh",
+    background: "linear-gradient(180deg, #08080d 0%, #0d0d14 40%, #0a0a12 100%)",
+    color: "#efe5d2",
+    fontFamily: "'Cormorant Garamond', Georgia, serif",
+    fontSize: "22px",
+    position: "relative",
+    overflow: "hidden",
+    textShadow: "0 1px 4px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.4)",
+  },
+  noiseOverlay: {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+    pointerEvents: "none", zIndex: 0,
+  },
+  content: { position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto", padding: "0 20px 40px" },
+  header: {
+    textAlign: "center", padding: "30px 0 10px",
+    borderBottom: "1px solid rgba(196,30,58,0.2)",
+    marginBottom: 24,
+  },
+  title: {
+    fontFamily: "'Cinzel', serif",
+    fontSize: 48, fontWeight: 900, letterSpacing: 5,
+    background: "linear-gradient(135deg, #c41e3a 0%, #7b2fbe 33%, #4a6fa5 66%, #4a8c3f 100%)",
+    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+    margin: 0, textTransform: "uppercase",
+  },
+  subtitle: {
+    fontFamily: "'Cinzel', serif", fontSize: 17, letterSpacing: 6,
+    color: "#c4b49e", marginTop: 6, textTransform: "uppercase",
+  },
+  bgBar: {
+    display: "flex", alignItems: "center", justifyContent: "center",
+    gap: 12, padding: "10px 0 4px",
+  },
+  bgBtn: (active) => ({
+    background: active ? "rgba(196,30,58,0.15)" : "transparent",
+    border: `1px solid ${active ? "#c41e3a60" : "#2a2a35"}`,
+    borderRadius: 20, padding: "6px 18px", cursor: "pointer",
+    fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: 2,
+    color: active ? "#e8dcc6" : "#6a6058", textTransform: "uppercase",
+    transition: "all 0.3s", display: "flex", alignItems: "center", gap: 8,
+  }),
+  chronicleBar: {
+    display: "flex", alignItems: "center", gap: 12, padding: "12px 0",
+    flexWrap: "wrap", justifyContent: "center",
+  },
+  select: {
+    background: "rgba(19,19,26,0.85)", border: "1px solid #3a3a45", borderRadius: 4,
+    color: "#f0e6d4", padding: "10px 14px", fontFamily: "'Cormorant Garamond', serif",
+    fontSize: 22, cursor: "pointer", minWidth: 220,
+  },
+  btn: (accent = "#c41e3a") => ({
+    background: "transparent", border: `1px solid ${accent}40`,
+    color: accent, padding: "9px 18px", borderRadius: 4, cursor: "pointer",
+    fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 2,
+    textTransform: "uppercase", transition: "all 0.3s",
+  }),
+  btnFilled: (accent = "#c41e3a") => ({
+    background: `${accent}20`, border: `1px solid ${accent}60`,
+    color: "#e8dcc6", padding: "10px 22px", borderRadius: 4, cursor: "pointer",
+    fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 2,
+    textTransform: "uppercase", transition: "all 0.3s",
+  }),
+  tabs: {
+    display: "flex", gap: 0, borderBottom: "1px solid #1e1e28",
+    marginBottom: 24, flexWrap: "wrap",
+  },
+  tab: (active, accent) => ({
+    padding: "12px 16px", cursor: "pointer",
+    fontFamily: "'Cinzel', serif", fontSize: 17, letterSpacing: 1.5,
+    textTransform: "uppercase", transition: "all 0.3s",
+    color: active ? "#f5ece0" : "#b0a494",
+    borderBottom: active ? `2px solid ${accent}` : "2px solid transparent",
+    background: active ? `${accent}08` : "transparent",
+  }),
+  card: {
+    background: "linear-gradient(135deg, rgba(14,14,22,0.92) 0%, rgba(18,18,27,0.92) 100%)",
+    border: "1px solid #2a2a35", borderRadius: 6, padding: 24, marginBottom: 16,
+    backdropFilter: "blur(12px)",
+  },
+  cardHeader: {
+    fontFamily: "'Cinzel', serif", fontSize: 26, fontWeight: 600,
+    letterSpacing: 2, marginBottom: 14, textTransform: "uppercase",
+  },
+  input: {
+    background: "#0d0d14", border: "1px solid #2a2a35", borderRadius: 4,
+    color: "#e8dcc6", padding: "12px 16px", fontFamily: "'Cormorant Garamond', serif",
+    fontSize: 20, width: "100%", boxSizing: "border-box",
+  },
+  textarea: {
+    background: "#0d0d14", border: "1px solid #2a2a35", borderRadius: 4,
+    color: "#e8dcc6", padding: "14px 16px", fontFamily: "'Cormorant Garamond', serif",
+    fontSize: 20, width: "100%", boxSizing: "border-box", minHeight: 150,
+    resize: "vertical", lineHeight: 1.6,
+  },
+  tag: (color = "#c41e3a") => ({
+    display: "inline-block", padding: "3px 12px", borderRadius: 12,
+    fontSize: 16, fontFamily: "'Cinzel', serif", letterSpacing: 1,
+    background: `${color}20`, border: `1px solid ${color}50`, color: color,
+    marginRight: 6, marginBottom: 4, textShadow: "none",
+  }),
+  divider: {
+    height: 1, background: "linear-gradient(90deg, transparent, #2a2a35, transparent)",
+    margin: "16px 0",
+  },
+  npcAvatar: {
+    width: 72, height: 72, borderRadius: "50%", objectFit: "cover",
+    border: "2px solid #2a2a35",
+  },
+  npcAvatarPlaceholder: {
+    width: 72, height: 72, borderRadius: "50%",
+    background: "linear-gradient(135deg, #1a1a24, #13131a)",
+    border: "2px solid #2a2a35", display: "flex", alignItems: "center",
+    justifyContent: "center", fontSize: 28, color: "#4a4a58",
+  },
+  badge: (accent) => ({
+    position: "absolute", top: 8, right: 8, padding: "2px 8px",
+    borderRadius: 10, fontSize: 13, fontFamily: "'Cinzel', serif",
+    letterSpacing: 1, background: `${accent}30`, color: accent,
+    textTransform: "uppercase",
+  }),
+  modal: {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center",
+    justifyContent: "center", zIndex: 10000, padding: 20,
+  },
+  modalContent: {
+    background: "linear-gradient(135deg, #13131a 0%, #16161f 100%)",
+    border: "1px solid #2a2a35", borderRadius: 8, padding: 28,
+    maxWidth: 600, width: "100%", maxHeight: "85vh", overflowY: "auto",
+  },
+  emptyState: {
+    textAlign: "center", padding: "60px 20px", color: "#a89d8d",
+    fontFamily: "'Cinzel', serif", fontSize: 21, letterSpacing: 2,
+  },
+  grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
+  flexRow: { display: "flex", alignItems: "center", gap: 10 },
+  muted: { color: "#c4b8a6", fontSize: 19 },
+  loading: {
+    display: "inline-block", width: 16, height: 16,
+    border: "2px solid #2a2a35", borderTopColor: "#c41e3a",
+    borderRadius: "50%", animation: "wod-spin 0.8s linear infinite",
+  },
+};
