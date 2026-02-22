@@ -89,31 +89,31 @@ export default function SplashScreen({
           background: rgba(255,255,255,0.03);
         }
         @keyframes smokeDrift1 {
-          0% { transform: translate(0, 0) scale(1); opacity: 0.035; }
-          25% { transform: translate(5%, -3%) scale(1.05); opacity: 0.05; }
-          50% { transform: translate(-3%, 5%) scale(0.95); opacity: 0.03; }
-          75% { transform: translate(-5%, -2%) scale(1.02); opacity: 0.045; }
-          100% { transform: translate(0, 0) scale(1); opacity: 0.035; }
+          0% { transform: translate(0, 0) scale(1); opacity: 0.07; }
+          25% { transform: translate(5%, -3%) scale(1.05); opacity: 0.1; }
+          50% { transform: translate(-3%, 5%) scale(0.95); opacity: 0.06; }
+          75% { transform: translate(-5%, -2%) scale(1.02); opacity: 0.09; }
+          100% { transform: translate(0, 0) scale(1); opacity: 0.07; }
         }
         @keyframes smokeDrift2 {
-          0% { transform: translate(0, 0) scale(1.05); opacity: 0.03; }
-          33% { transform: translate(-6%, 4%) scale(0.95); opacity: 0.045; }
-          66% { transform: translate(4%, -5%) scale(1.08); opacity: 0.025; }
-          100% { transform: translate(0, 0) scale(1.05); opacity: 0.03; }
+          0% { transform: translate(0, 0) scale(1.05); opacity: 0.06; }
+          33% { transform: translate(-6%, 4%) scale(0.95); opacity: 0.09; }
+          66% { transform: translate(4%, -5%) scale(1.08); opacity: 0.05; }
+          100% { transform: translate(0, 0) scale(1.05); opacity: 0.06; }
         }
         @keyframes smokeDrift3 {
-          0% { transform: translate(0, 0) scale(0.95); opacity: 0.025; }
-          20% { transform: translate(4%, 3%) scale(1.02); opacity: 0.04; }
-          40% { transform: translate(-2%, -4%) scale(1.08); opacity: 0.03; }
-          60% { transform: translate(-5%, 2%) scale(0.98); opacity: 0.045; }
-          80% { transform: translate(3%, -3%) scale(1.05); opacity: 0.025; }
-          100% { transform: translate(0, 0) scale(0.95); opacity: 0.025; }
+          0% { transform: translate(0, 0) scale(0.95); opacity: 0.05; }
+          20% { transform: translate(4%, 3%) scale(1.02); opacity: 0.08; }
+          40% { transform: translate(-2%, -4%) scale(1.08); opacity: 0.06; }
+          60% { transform: translate(-5%, 2%) scale(0.98); opacity: 0.09; }
+          80% { transform: translate(3%, -3%) scale(1.05); opacity: 0.05; }
+          100% { transform: translate(0, 0) scale(0.95); opacity: 0.05; }
         }
         @keyframes smokeDrift4 {
-          0% { transform: translate(0, 0) scale(1.02); opacity: 0.02; }
-          30% { transform: translate(3%, -5%) scale(0.96); opacity: 0.04; }
-          70% { transform: translate(-4%, 3%) scale(1.06); opacity: 0.03; }
-          100% { transform: translate(0, 0) scale(1.02); opacity: 0.02; }
+          0% { transform: translate(0, 0) scale(1.02); opacity: 0.04; }
+          30% { transform: translate(3%, -5%) scale(0.96); opacity: 0.08; }
+          70% { transform: translate(-4%, 3%) scale(1.06); opacity: 0.06; }
+          100% { transform: translate(0, 0) scale(1.02); opacity: 0.04; }
         }
         @keyframes transitionFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes bloodDrip {
@@ -150,7 +150,7 @@ export default function SplashScreen({
 
       {/* Ambient background noise */}
       <div style={{
-        position: "absolute", inset: 0, opacity: 0.04,
+        position: "absolute", inset: 0, opacity: 0.08,
         backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
       }} />
 
@@ -158,25 +158,25 @@ export default function SplashScreen({
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 }}>
         <div style={{
           position: "absolute", top: "-20%", left: "-10%", width: "70%", height: "70%",
-          background: "radial-gradient(ellipse at 40% 50%, rgba(200,200,210,0.07) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse at 40% 50%, rgba(200,200,210,0.14) 0%, transparent 70%)",
           filter: "blur(80px)",
           animation: "smokeDrift1 25s ease-in-out infinite",
         }} />
         <div style={{
           position: "absolute", bottom: "-15%", right: "-10%", width: "60%", height: "65%",
-          background: "radial-gradient(ellipse at 60% 50%, rgba(196,30,58,0.05) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse at 60% 50%, rgba(196,30,58,0.10) 0%, transparent 70%)",
           filter: "blur(90px)",
           animation: "smokeDrift2 32s ease-in-out infinite",
         }} />
         <div style={{
           position: "absolute", top: "10%", right: "-5%", width: "55%", height: "55%",
-          background: "radial-gradient(ellipse at 50% 40%, rgba(180,170,190,0.06) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse at 50% 40%, rgba(180,170,190,0.12) 0%, transparent 70%)",
           filter: "blur(100px)",
           animation: "smokeDrift3 38s ease-in-out infinite",
         }} />
         <div style={{
           position: "absolute", top: "30%", left: "20%", width: "50%", height: "50%",
-          background: "radial-gradient(ellipse at 50% 50%, rgba(140,20,40,0.04) 0%, transparent 65%)",
+          background: "radial-gradient(ellipse at 50% 50%, rgba(140,20,40,0.08) 0%, transparent 65%)",
           filter: "blur(110px)",
           animation: "smokeDrift4 28s ease-in-out infinite",
         }} />
@@ -347,20 +347,20 @@ export default function SplashScreen({
             bg: "linear-gradient(180deg, #8b0000 0%, #c41e3a 30%, #2a0000 100%)",
             animation: "bloodDrip 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards",
             label: "The Blood is the Life...",
-            particles: Array.from({ length: 12 }, (_, i) => ({
-              left: `${8 + i * 8}%`, animDelay: `${Math.random() * 0.4}s`,
+            particles: Array.from({ length: 20 }, (_, i) => ({
+              left: `${5 + i * 5}%`, animDelay: `${Math.random() * 0.4}s`,
               height: `${60 + Math.random() * 40}%`,
-              bg: `rgba(${139 + Math.floor(Math.random() * 57)}, 0, 0, ${0.6 + Math.random() * 0.4})`,
+              bg: `rgba(${139 + Math.floor(Math.random() * 57)}, 0, 0, ${0.8 + Math.random() * 0.2})`,
             })),
           },
           mta: {
             bg: "radial-gradient(circle at center, #9b59b6 0%, #4a148c 40%, #1a0033 100%)",
             animation: "arcaneShatter 1.2s ease-out forwards",
             label: "Reality Bends...",
-            particles: Array.from({ length: 8 }, (_, i) => ({
-              left: `${50 + 30 * Math.cos(i * Math.PI / 4)}%`,
-              top: `${50 + 30 * Math.sin(i * Math.PI / 4)}%`,
-              size: 4 + Math.random() * 6,
+            particles: Array.from({ length: 16 }, (_, i) => ({
+              left: `${50 + 30 * Math.cos(i * Math.PI / 8)}%`,
+              top: `${50 + 30 * Math.sin(i * Math.PI / 8)}%`,
+              size: 8 + Math.random() * 12,
             })),
           },
           wta: {
@@ -405,7 +405,7 @@ export default function SplashScreen({
 
             {splashTransition === "vtm" && t.particles.map((p, i) => (
               <div key={i} style={{
-                position: "absolute", top: 0, left: p.left, width: "3px", height: p.height,
+                position: "absolute", top: 0, left: p.left, width: "6px", height: p.height,
                 background: p.bg, borderRadius: "0 0 3px 3px",
                 animation: `bloodDrip 1s ease ${p.animDelay} forwards`,
                 transformOrigin: "top center",
@@ -416,7 +416,7 @@ export default function SplashScreen({
               <div key={i} style={{
                 position: "absolute", left: p.left, top: p.top,
                 width: p.size, height: p.size, borderRadius: "50%",
-                background: "#e0b0ff", boxShadow: "0 0 12px 4px rgba(155,89,182,0.6)",
+                background: "#e0b0ff", boxShadow: "0 0 24px 8px rgba(155,89,182,0.8)",
                 animation: `arcaneShatter 1.2s ease ${i * 0.1}s forwards`,
               }} />
             ))}
