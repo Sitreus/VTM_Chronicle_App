@@ -25,6 +25,7 @@ export default function useAudio() {
   const initPromiseRef = useRef(null);
   const [muted, setMuted] = useState(false);
   const [volume, setVolumeState] = useState(0.8);
+  const [isReady, setIsReady] = useState(false);
 
   // Create manager on mount
   useEffect(() => {
@@ -37,11 +38,18 @@ export default function useAudio() {
     };
   }, []);
 
-  // Initialize on first user gesture
+  // Initialize and resume AudioContext.
+  // The AudioContext can only leave "suspended" state when called from
+  // a user gesture (click/keydown). Calls outside gestures will init
+  // the engine but the context stays suspended until the next gesture.
   const ensureInit = useCallback(async () => {
     const manager = managerRef.current;
-    if (!manager || manager.isReady) return manager;
+    if (!manager) return null;
 
+    // Already fully running — nothing to do
+    if (manager.isReady) return manager;
+
+    // Initialize engine + load manifest (first call only)
     if (!initPromiseRef.current) {
       initPromiseRef.current = manager.init().catch(err => {
         console.warn('[useAudio] Init failed:', err);
@@ -49,8 +57,17 @@ export default function useAudio() {
       });
     }
     await initPromiseRef.current;
+
+    // Resume a suspended AudioContext (succeeds when called from a user gesture)
+    await manager.resume();
+
+    // Update reactive state so dependent useEffects re-fire
+    if (manager.isReady && !isReady) {
+      setIsReady(true);
+    }
+
     return manager;
-  }, []);
+  }, [isReady]);
 
   // Auto-init on first user interaction
   useEffect(() => {
@@ -134,6 +151,6 @@ export default function useAudio() {
     getStatus,
     muted,
     volume,
-    isReady: managerRef.current?.isReady ?? false,
+    isReady,
   };
 }

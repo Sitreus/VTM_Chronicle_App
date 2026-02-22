@@ -88,12 +88,14 @@ export default function WorldOfDarkness() {
     })();
   }, []);
 
-  // Audio: start drone when splash screen is visible
+  // Audio: start drone when splash screen is visible.
+  // Depends on audio.isReady so it retries once the AudioContext resumes
+  // (which requires a user gesture due to browser autoplay policy).
   useEffect(() => {
     if (showSplash && splashPhase === "welcome") {
       audio.onSplashEnter();
     }
-  }, [showSplash, splashPhase]);
+  }, [showSplash, splashPhase, audio.isReady]);
 
   // When game type changes, select first matching chronicle
   useEffect(() => {
