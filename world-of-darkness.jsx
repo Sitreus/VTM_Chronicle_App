@@ -2652,7 +2652,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
             position: relative; cursor: pointer; border-radius: 12px;
             overflow: hidden; transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             border: 1px solid rgba(255,255,255,0.06);
-            width: 180px; flex-shrink: 0;
+            width: 340px; flex-shrink: 0;
           }
           .splash-card:hover {
             transform: translateY(-12px) scale(1.03);
@@ -2666,7 +2666,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
             opacity: 1;
           }
           .splash-card img {
-            width: 100%; height: 270px; object-fit: cover; display: block;
+            width: 100%; height: 500px; object-fit: cover; display: block;
             filter: brightness(0.7) saturate(0.8);
             transition: all 0.4s ease;
           }
@@ -2744,7 +2744,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
             animation: "splashFadeIn 0.8s ease forwards",
-            width: "100%", maxWidth: 1100, padding: "0 24px",
+            width: "100%", maxWidth: 1600, padding: "0 24px",
           }}>
             <div style={{
               fontFamily: "'Cinzel', serif", fontSize: 14, fontWeight: 400,
@@ -2762,7 +2762,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
             </h2>
 
             <div style={{
-              display: "flex", gap: 20, justifyContent: "center",
+              display: "flex", gap: 28, justifyContent: "center",
               flexWrap: "wrap",
             }}>
               {splashGames.map((game, i) => {
@@ -2785,7 +2785,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
                       <div style={{
                         width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
                         background: `linear-gradient(135deg, ${game.accent}40 0%, ${game.accent}15 100%)`,
-                        fontSize: 64,
+                        fontSize: 96,
                       }}>{game.icon}</div>
                     )}
                     {/* Gradient overlay */}
@@ -2798,19 +2798,19 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
                     {/* Text */}
                     <div style={{
                       position: "absolute", bottom: 0, left: 0, right: 0,
-                      padding: "16px 12px", textAlign: "center",
+                      padding: "24px 18px", textAlign: "center",
                     }}>
                       <div style={{
-                        fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 700,
-                        color: "#fff", letterSpacing: 1.5, marginBottom: 6,
+                        fontFamily: "'Cinzel', serif", fontSize: 20, fontWeight: 700,
+                        color: "#fff", letterSpacing: 2, marginBottom: 8,
                         textShadow: "0 2px 8px rgba(0,0,0,0.8)",
                       }}>
                         {game.label}
                       </div>
                       <div style={{
-                        fontFamily: "'Cormorant Garamond', serif", fontSize: 11,
+                        fontFamily: "'Cormorant Garamond', serif", fontSize: 16,
                         color: "rgba(255,255,255,0.7)", fontStyle: "italic",
-                        lineHeight: 1.3, textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                        lineHeight: 1.4, textShadow: "0 1px 4px rgba(0,0,0,0.8)",
                       }}>
                         {splash.tagline}
                       </div>
