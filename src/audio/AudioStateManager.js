@@ -88,8 +88,7 @@ export default class AudioStateManager {
 
     // Intro splash audio state
     this._introStartHandle = null;   // handle from engine.play
-    this._introLoopHandle = null;
-    this._introLoopTimer = null;     // setTimeout id for the 24s loop trigger
+    this._introLoopHandle = null;    // handle from engine.playGaplessLoop
 
     // Welcome screen music state
     this._welcomeMusicRequested = false;
@@ -157,6 +156,12 @@ export default class AudioStateManager {
 
   /**
    * Start the welcome/main-menu music (intro_start → intro_loop).
+   *
+   * Uses Web Audio sample-accurate scheduling instead of setTimeout
+   * to eliminate the gap between intro_start and intro_loop.
+   * The loop uses double-buffered gapless playback to avoid
+   * OGG codec padding micro-gaps on repeat.
+   *
    * Idempotent — safe to call multiple times.
    * @private
    */
@@ -165,6 +170,8 @@ export default class AudioStateManager {
     if (this._welcomeMusicStarted) return;
     this._welcomeMusicStarted = true;
     this._splashActive = true;
+
+    const startTime = this.engine.currentTime;
 
     // Play intro start music with a gentle fade-in
     if (this.engine.hasBuffer('intro_start')) {
@@ -175,18 +182,22 @@ export default class AudioStateManager {
       });
     }
 
-    // Schedule loop after intro_start finishes (~24s)
-    this._introLoopTimer = setTimeout(() => {
-      this._introLoopTimer = null;
-      if (!this._splashActive || !this.isReady) return;
-      if (this.engine.hasBuffer('intro_loop')) {
-        this._introLoopHandle = this.engine.play('intro_loop', {
-          loop: true,
+    // Schedule gapless loop to begin at the exact sample where intro_start ends.
+    // Web Audio scheduling is sample-accurate — no JS timer jitter.
+    if (this.engine.hasBuffer('intro_loop')) {
+      const introDuration = this.engine.getBufferDuration('intro_start');
+      if (introDuration) {
+        this._introLoopHandle = this.engine.playGaplessLoop('intro_loop', {
           volume: 1,
-          fadeIn: 0,
+          when: startTime + introDuration,
+        });
+      } else {
+        // Fallback: no intro_start buffer, start loop immediately
+        this._introLoopHandle = this.engine.playGaplessLoop('intro_loop', {
+          volume: 1,
         });
       }
-    }, 24000);
+    }
   }
 
   /**
@@ -234,9 +245,8 @@ export default class AudioStateManager {
 
   /**
    * Called when "Enter the Darkness" is clicked (welcome screen).
-   * Plays button press sound and stinger to mask the transition.
-   * Welcome music is already playing (started on first user gesture);
-   * if not yet started, kicks it off now as a fallback.
+   * Plays button press sound and stinger, then fades out the intro music.
+   * The stinger masks the fade-out for a smooth transition.
    */
   async onEnterDarkness(gameLineId = null) {
     if (!this.isReady) return;
@@ -247,16 +257,20 @@ export default class AudioStateManager {
       this.transition.play('intro_press', { volume: 1 });
     }
 
-    // Play stinger — masks the visual transition
+    // Play stinger — masks the fade-out of intro music
     if (this.engine.hasBuffer('intro_stinger')) {
       this.transition.play('intro_stinger', { volume: 1 });
     }
 
-    // Ensure welcome music is playing (fallback for edge case where
-    // the button click is the very first interaction on the page)
+    // Fade out intro music (intro_start and/or intro_loop).
+    // The stinger covers the fade so the transition feels seamless.
+    this._stopIntroAudio(1.3);
+
+    // If welcome music hasn't started yet (edge case: this button
+    // is the very first interaction), cancel the pending request —
+    // no point starting music just to immediately fade it out.
     if (!this._welcomeMusicStarted) {
-      this._welcomeMusicRequested = true;
-      this._startWelcomeMusic();
+      this._welcomeMusicRequested = false;
     }
 
     // Fade out drone if it was active
@@ -270,10 +284,6 @@ export default class AudioStateManager {
    * @param {number} fadeOut — fade-out duration in seconds (0 = immediate)
    */
   _stopIntroAudio(fadeOut = 0) {
-    if (this._introLoopTimer) {
-      clearTimeout(this._introLoopTimer);
-      this._introLoopTimer = null;
-    }
     if (this._introStartHandle) {
       this.engine.stop(this._introStartHandle.id, fadeOut);
       this._introStartHandle = null;

@@ -155,6 +155,16 @@ export default class AudioEngine {
     return this._bufferCache.has(name);
   }
 
+  /**
+   * Get the duration of a loaded buffer in seconds.
+   * @param {string} name — cache key
+   * @returns {number|null}
+   */
+  getBufferDuration(name) {
+    const buffer = this._bufferCache.get(name);
+    return buffer ? buffer.duration : null;
+  }
+
   // ─── Gain Node Factory ──────────────────────────────────────
 
   /**
@@ -194,6 +204,7 @@ export default class AudioEngine {
    * @param {number}   options.fadeIn   — fade-in duration in seconds
    * @param {number}   options.offset   — start offset in seconds
    * @param {number}   options.playbackRate — playback rate multiplier
+   * @param {number}   options.when     — AudioContext time to start (0 = now)
    * @returns {{ source: AudioBufferSourceNode, gain: GainNode, id: string }}
    */
   play(bufferName, options = {}) {
@@ -207,6 +218,7 @@ export default class AudioEngine {
       fadeIn = 0,
       offset = 0,
       playbackRate = 1,
+      when = 0,
     } = options;
 
     const gain = this._ctx.createGain();
@@ -218,22 +230,114 @@ export default class AudioEngine {
     source.playbackRate.value = playbackRate;
     source.connect(gain);
 
+    // Use scheduled time or "now" for gain automation
+    const startAt = when || this.currentTime;
+
     if (fadeIn > 0) {
-      gain.gain.setValueAtTime(0, this.currentTime);
-      gain.gain.linearRampToValueAtTime(volume, this.currentTime + fadeIn);
+      gain.gain.setValueAtTime(0, startAt);
+      gain.gain.linearRampToValueAtTime(volume, startAt + fadeIn);
     } else {
-      gain.gain.setValueAtTime(volume, this.currentTime);
+      gain.gain.setValueAtTime(volume, startAt);
     }
 
     const id = `src_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    this._activeSources.set(id, { source, gain, startedAt: this.currentTime });
+    this._activeSources.set(id, { source, gain, startedAt: startAt });
 
     source.onended = () => {
       this._activeSources.delete(id);
     };
 
-    source.start(0, offset);
+    source.start(when, offset);
     return { source, gain, id };
+  }
+
+  /**
+   * Play a buffer in a seamless gapless loop using double-buffering.
+   *
+   * Instead of relying on source.loop (which can produce micro-gaps
+   * from OGG/Vorbis codec padding), this pre-schedules successive
+   * buffer plays back-to-back using Web Audio's sample-accurate timing.
+   *
+   * @param {string} bufferName — name of a previously loaded buffer
+   * @param {Object} options
+   * @param {GainNode} options.output — destination gain (defaults to master)
+   * @param {number}   options.volume — initial volume 0-1
+   * @param {number}   options.when   — AudioContext time to start (0 = now)
+   * @returns {{ gain: GainNode, id: string }}
+   */
+  playGaplessLoop(bufferName, options = {}) {
+    const buffer = this.getBuffer(bufferName);
+    if (!buffer || !this._ctx) return null;
+
+    const {
+      output = this._masterGain,
+      volume = 1,
+      when = 0,
+    } = options;
+
+    // Shared gain node for all loop iterations
+    const gain = this._ctx.createGain();
+    gain.connect(output);
+    const startAt = when || this.currentTime;
+    gain.gain.setValueAtTime(volume, startAt);
+
+    const id = `gloop_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const duration = buffer.duration;
+    let nextTime = startAt;
+    let stopped = false;
+    let timerHandle = null;
+    const sources = [];
+
+    const scheduleIteration = () => {
+      if (stopped) return;
+      const src = this._ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(gain);
+      src.start(nextTime);
+      sources.push(src);
+      nextTime += duration;
+      // Remove finished sources to prevent memory buildup
+      src.onended = () => {
+        const idx = sources.indexOf(src);
+        if (idx >= 0) sources.splice(idx, 1);
+      };
+    };
+
+    // Pre-schedule 2 iterations for seamless playback
+    scheduleIteration();
+    scheduleIteration();
+
+    // Keep scheduling ahead so the loop never runs out
+    const scheduleAhead = () => {
+      if (stopped) return;
+      scheduleIteration();
+      const msUntilNeeded = Math.max(500,
+        (nextTime - this._ctx.currentTime - duration) * 1000);
+      timerHandle = setTimeout(scheduleAhead, msUntilNeeded);
+    };
+    const msUntilFirst = Math.max(500,
+      (nextTime - this._ctx.currentTime - duration) * 1000);
+    timerHandle = setTimeout(scheduleAhead, msUntilFirst);
+
+    // Cleanup function — stops scheduling and all active sources
+    const stopAll = () => {
+      stopped = true;
+      if (timerHandle) clearTimeout(timerHandle);
+      for (const src of sources) {
+        try { src.stop(); } catch (_) { /* already ended */ }
+      }
+      sources.length = 0;
+    };
+
+    this._activeSources.set(id, {
+      source: null,
+      gain,
+      startedAt: startAt,
+      _isGaplessLoop: true,
+      _stop: stopAll,
+    });
+
+    return { gain, id };
   }
 
   /**
@@ -244,14 +348,30 @@ export default class AudioEngine {
     if (!entry) return;
 
     const { source, gain } = entry;
+
     if (fadeOut > 0) {
       gain.gain.cancelScheduledValues(this.currentTime);
       gain.gain.setValueAtTime(gain.gain.value, this.currentTime);
       gain.gain.linearRampToValueAtTime(0, this.currentTime + fadeOut);
-      source.stop(this.currentTime + fadeOut + 0.05);
+      if (source) {
+        source.stop(this.currentTime + fadeOut + 0.05);
+      }
     } else {
-      source.stop();
+      if (source) {
+        source.stop();
+      }
     }
+
+    // Clean up gapless loop scheduling and sources
+    if (entry._isGaplessLoop && entry._stop) {
+      if (fadeOut > 0) {
+        // Let the fade finish, then kill all scheduled sources
+        setTimeout(() => entry._stop(), fadeOut * 1000 + 100);
+      } else {
+        entry._stop();
+      }
+    }
+
     this._activeSources.delete(id);
   }
 
