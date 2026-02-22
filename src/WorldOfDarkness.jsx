@@ -10,6 +10,8 @@ import ProgressClock from "./components/ProgressClock.jsx";
 import NPCCard from "./components/NPCCard.jsx";
 import SessionCard from "./components/SessionCard.jsx";
 import SplashScreen from "./components/SplashScreen.jsx";
+import AudioControl from "./components/AudioControl.jsx";
+import useAudio from "./audio/useAudio.js";
 
 export default function WorldOfDarkness() {
   const [chronicles, setChronicles] = useState([]);
@@ -32,6 +34,7 @@ export default function WorldOfDarkness() {
   const [activeGameType, setActiveGameType] = useState(null); // Selected game line (e.g. "vtm", "mta")
   const [selectedSplashCard, setSelectedSplashCard] = useState(null); // Card selected before transition
   const [splashTransition, setSplashTransition] = useState(null); // Active transition effect (e.g. "vtm")
+  const [modalEntrance, setModalEntrance] = useState(false); // Smooth entrance animation for post-splash modal
   const [apiKey, setApiKey] = useState(""); // Anthropic API key
   const [proxyUrl, setProxyUrl] = useState(""); // Optional CORS proxy URL
   const fileInputRef = useRef(null);
@@ -41,6 +44,9 @@ export default function WorldOfDarkness() {
   activeChronicleIdRef.current = activeChronicleId;
   const chronicleDataRef = useRef(chronicleData);
   chronicleDataRef.current = chronicleData;
+
+  // Audio engine
+  const audio = useAudio();
 
   // Flush current chronicle data to storage before switching away
   const saveBeforeSwitch = async () => {
@@ -81,6 +87,13 @@ export default function WorldOfDarkness() {
       setLoading(false);
     })();
   }, []);
+
+  // Audio: start drone when splash screen is visible
+  useEffect(() => {
+    if (showSplash && splashPhase === "welcome") {
+      audio.onSplashEnter();
+    }
+  }, [showSplash, splashPhase]);
 
   // When game type changes, select first matching chronicle
   useEffect(() => {
@@ -1573,7 +1586,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     if (!showModal) return null;
 
     if (showModal === "newChronicle") return (
-      <Modal onClose={() => setShowModal(null)}>
+      <Modal onClose={() => { setShowModal(null); setModalEntrance(false); }} smoothEntrance={modalEntrance}>
         <div style={{ ...S.cardHeader, color: accent }}>New Chronicle</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <input style={S.input} placeholder="Chronicle Name" value={modalData.name || ""}
@@ -2074,6 +2087,8 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     if (selectedSplashCard) return; // Prevent double-click during transition
     // Step 1: Select the card (colors it)
     setSelectedSplashCard(gameId);
+    // Audio: trigger game-line transition sting
+    audio.onGameLineSelect(gameId);
     // Step 2: After a brief pause, trigger the themed transition overlay
     setTimeout(() => {
       setSplashTransition(gameId);
@@ -2082,13 +2097,18 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         setActiveGameType(gameId);
         await storageSet("wod-active-game-type", gameId);
         setShowSplash(false);
+        audio.onSplashExit();
         setSplashTransition(null);
         setSelectedSplashCard(null);
         // Filter chronicles for this game type
         const matching = chronicles.filter(c => c.gameType === gameId);
         if (matching.length === 0 && chronicles.length === 0) {
-          setModalData({ gameType: gameId });
-          setShowModal("newChronicle");
+          // Smooth delayed entrance — let the database screen settle first
+          setTimeout(() => {
+            setModalData({ gameType: gameId });
+            setModalEntrance(true);
+            setShowModal("newChronicle");
+          }, 500);
         } else if (matching.length > 0) {
           saveBeforeSwitch();
           setActiveChronicleId(matching[0].id);
@@ -2145,6 +2165,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         setShowSplash={setShowSplash} setShowModal={setShowModal} setModalData={setModalData}
         apiKey={apiKey} proxyUrl={proxyUrl}
         onSplashSelect={handleSplashSelect}
+        audio={audio}
       />}
       {!bgImage && <div style={S.noiseOverlay} />}
       <div style={S.content}>
@@ -2158,6 +2179,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
               onClick={() => { saveBeforeSwitch(); setShowSplash(true); setSplashPhase("select"); }}>
               ◈ Selection Menu
             </button>
+            <AudioControl audio={audio} />
           </div>
         </div>
 
@@ -2185,7 +2207,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
           <div style={S.tabs}>
             {TABS.map(t => (
               <div key={t.id} style={S.tab(activeTab === t.id, accent)}
-                onClick={() => setActiveTab(t.id)}>
+                onClick={() => { setActiveTab(t.id); audio.onTabChange(); }}>
                 <span style={{ marginRight: 6 }}>{t.icon}</span>{t.label}
               </div>
             ))}
