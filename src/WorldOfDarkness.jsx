@@ -10,6 +10,8 @@ import ProgressClock from "./components/ProgressClock.jsx";
 import NPCCard from "./components/NPCCard.jsx";
 import SessionCard from "./components/SessionCard.jsx";
 import SplashScreen from "./components/SplashScreen.jsx";
+import AudioControl from "./components/AudioControl.jsx";
+import useAudio from "./audio/useAudio.js";
 
 export default function WorldOfDarkness() {
   const [chronicles, setChronicles] = useState([]);
@@ -42,6 +44,9 @@ export default function WorldOfDarkness() {
   activeChronicleIdRef.current = activeChronicleId;
   const chronicleDataRef = useRef(chronicleData);
   chronicleDataRef.current = chronicleData;
+
+  // Audio engine
+  const audio = useAudio();
 
   // Flush current chronicle data to storage before switching away
   const saveBeforeSwitch = async () => {
@@ -82,6 +87,13 @@ export default function WorldOfDarkness() {
       setLoading(false);
     })();
   }, []);
+
+  // Audio: start drone when splash screen is visible
+  useEffect(() => {
+    if (showSplash && splashPhase === "welcome") {
+      audio.onSplashEnter();
+    }
+  }, [showSplash, splashPhase]);
 
   // When game type changes, select first matching chronicle
   useEffect(() => {
@@ -2075,6 +2087,8 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     if (selectedSplashCard) return; // Prevent double-click during transition
     // Step 1: Select the card (colors it)
     setSelectedSplashCard(gameId);
+    // Audio: trigger game-line transition sting
+    audio.onGameLineSelect(gameId);
     // Step 2: After a brief pause, trigger the themed transition overlay
     setTimeout(() => {
       setSplashTransition(gameId);
@@ -2083,6 +2097,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         setActiveGameType(gameId);
         await storageSet("wod-active-game-type", gameId);
         setShowSplash(false);
+        audio.onSplashExit();
         setSplashTransition(null);
         setSelectedSplashCard(null);
         // Filter chronicles for this game type
@@ -2150,6 +2165,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         setShowSplash={setShowSplash} setShowModal={setShowModal} setModalData={setModalData}
         apiKey={apiKey} proxyUrl={proxyUrl}
         onSplashSelect={handleSplashSelect}
+        audio={audio}
       />}
       {!bgImage && <div style={S.noiseOverlay} />}
       <div style={S.content}>
@@ -2163,6 +2179,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
               onClick={() => { saveBeforeSwitch(); setShowSplash(true); setSplashPhase("select"); }}>
               ◈ Selection Menu
             </button>
+            <AudioControl audio={audio} />
           </div>
         </div>
 
@@ -2190,7 +2207,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
           <div style={S.tabs}>
             {TABS.map(t => (
               <div key={t.id} style={S.tab(activeTab === t.id, accent)}
-                onClick={() => setActiveTab(t.id)}>
+                onClick={() => { setActiveTab(t.id); audio.onTabChange(); }}>
                 <span style={{ marginRight: 6 }}>{t.icon}</span>{t.label}
               </div>
             ))}

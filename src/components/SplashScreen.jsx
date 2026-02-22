@@ -1,5 +1,6 @@
 import { GAME_TYPES, FONTS_URL } from "../constants.js";
 import { GAME_SPLASH_DATA } from "../splashImages.js";
+import AudioControl from "./AudioControl.jsx";
 
 export default function SplashScreen({
   splashPhase, setSplashPhase,
@@ -8,6 +9,7 @@ export default function SplashScreen({
   setShowSplash, setShowModal, setModalData,
   apiKey, proxyUrl,
   onSplashSelect,
+  audio,
 }) {
   const splashGames = GAME_TYPES.filter(g => g.id !== "mixed");
   return (
@@ -134,6 +136,11 @@ export default function SplashScreen({
         <span style={{ fontSize: 16 }}>&#x2699;</span> Set API Key
       </button>
 
+      {/* Audio mute control */}
+      <div style={{ position: "absolute", top: 24, right: activeGameType ? 140 : 32, zIndex: 10 }}>
+        <AudioControl audio={audio} />
+      </div>
+
       {/* Skip button */}
       {activeGameType && (
         <button className="splash-skip" onClick={() => setShowSplash(false)}>
@@ -168,7 +175,7 @@ export default function SplashScreen({
             animation: "splashLineExpand 2s ease 0.8s both",
             marginBottom: 40,
           }} />
-          <button onClick={() => { setSplashPhase("fading"); setTimeout(() => setSplashPhase("select"), 600); }} style={{
+          <button onClick={() => { setSplashPhase("fading"); audio?.onEnterDarkness(); setTimeout(() => setSplashPhase("select"), 600); }} style={{
             background: "none", border: "1px solid rgba(196,30,58,0.3)",
             color: "#c4a884", padding: "14px 40px", borderRadius: 4,
             fontFamily: "'Cinzel', serif", fontSize: 16, letterSpacing: 4,
