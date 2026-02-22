@@ -88,9 +88,15 @@ export default function WorldOfDarkness() {
     })();
   }, []);
 
+  // Audio: request welcome music as soon as the welcome screen is shown.
+  // The music starts on the first user gesture (browser autoplay policy).
+  useEffect(() => {
+    if (showSplash && (splashPhase === "welcome" || splashPhase === "fading")) {
+      audio.onWelcomeScreenReady();
+    }
+  }, [showSplash, splashPhase]);
+
   // Audio: track splash state when card selection screen appears.
-  // Intro music now starts from onEnterDarkness (welcome screen button click).
-  // This just ensures the splash-active flag is set for state tracking.
   useEffect(() => {
     if (showSplash && splashPhase === "select") {
       audio.onSplashEnter();
