@@ -146,6 +146,16 @@ export default function SplashScreen({
           50% { opacity: 0.8; filter: hue-rotate(60deg) blur(5px); }
           100% { opacity: 1; filter: hue-rotate(120deg) blur(0px); }
         }
+        @keyframes floatUp {
+          0% { transform: translateY(100vh) translateX(0px); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(-20vh) translateX(var(--drift)); opacity: 0; }
+        }
+        @keyframes particlePulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.9; }
+        }
       `}</style>
 
       {/* Ambient background noise */}
@@ -207,6 +217,38 @@ export default function SplashScreen({
         <button className="splash-skip" onClick={() => setShowSplash(false)}>
           Skip →
         </button>
+      )}
+
+      {/* Floating ember particles */}
+      {(splashPhase === "welcome" || splashPhase === "fading") && (
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 2 }}>
+          {Array.from({ length: 30 }, (_, i) => {
+            const size = 2 + (i % 4) * 1.5;
+            const left = (i * 3.3 + (i * 7) % 10) % 100;
+            const duration = 8 + (i % 7) * 3;
+            const delay = (i * 1.3) % 10;
+            const drift = -30 + (i * 17) % 60;
+            const isRed = i % 3 === 0;
+            return (
+              <div key={i} style={{
+                position: "absolute",
+                left: `${left}%`,
+                bottom: "-10px",
+                width: size,
+                height: size,
+                borderRadius: "50%",
+                background: isRed
+                  ? `rgba(196, 30, 58, ${0.6 + (i % 5) * 0.08})`
+                  : `rgba(196, 168, 132, ${0.4 + (i % 5) * 0.1})`,
+                boxShadow: isRed
+                  ? `0 0 ${size * 3}px ${size}px rgba(196, 30, 58, 0.3)`
+                  : `0 0 ${size * 2}px ${size * 0.5}px rgba(196, 168, 132, 0.2)`,
+                "--drift": `${drift}px`,
+                animation: `floatUp ${duration}s ease-in-out ${delay}s infinite, particlePulse ${2 + (i % 3)}s ease-in-out ${delay}s infinite`,
+              }} />
+            );
+          })}
+        </div>
       )}
 
       {splashPhase === "welcome" || splashPhase === "fading" ? (
