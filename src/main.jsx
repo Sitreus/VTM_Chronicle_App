@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import WorldOfDarkness from "../world-of-darkness.jsx";
+import WorldOfDarkness from "./WorldOfDarkness.jsx";
 
 // Polyfill window.storage using localStorage
 // The app expects an async key-value store with get/set/delete
