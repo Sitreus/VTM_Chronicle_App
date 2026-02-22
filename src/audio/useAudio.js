@@ -77,10 +77,13 @@ export default function useAudio() {
     return manager;
   }, [isReady]);
 
-  // Auto-init on first user interaction
+  // Auto-init on first user interaction.
+  // After init completes, call onSystemReady() to start any pending
+  // welcome music that was requested before the user gesture.
   useEffect(() => {
-    const handleGesture = () => {
-      ensureInit();
+    const handleGesture = async () => {
+      const m = await ensureInit();
+      m?.onSystemReady();
       // Remove after first gesture
       window.removeEventListener('click', handleGesture);
       window.removeEventListener('keydown', handleGesture);
@@ -94,6 +97,10 @@ export default function useAudio() {
   }, [ensureInit]);
 
   // ─── Exposed Methods ───────────────────────────────────────
+
+  const onWelcomeScreenReady = useCallback(() => {
+    managerRef.current?.requestWelcomeMusic();
+  }, []);
 
   const onSplashEnter = useCallback(async () => {
     const m = await ensureInit();
@@ -146,6 +153,7 @@ export default function useAudio() {
   }, []);
 
   return {
+    onWelcomeScreenReady,
     onSplashEnter,
     onEnterDarkness,
     onGameLineSelect,

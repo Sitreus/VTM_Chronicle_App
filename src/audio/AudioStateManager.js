@@ -4,8 +4,8 @@
  * This is the "brain" that listens to app state changes and drives
  * the audio layers accordingly. It maps UI events to audio actions:
  *
- *   Splash screen visible  → DroneLayer starts, evolves on idle
- *   "Enter the Darkness"   → Stinger + intro music start, drone fades
+ *   Welcome screen visible  → Intro music starts (on first user gesture)
+ *   "Enter the Darkness"    → Button press + stinger (music already playing)
  *   Game line selected      → TransitionLayer sting, AmbientLayer crossfades
  *   Tab switched            → subtle UI sound (optional)
  *   Splash dismissed        → Ambient continues in main app
@@ -90,6 +90,10 @@ export default class AudioStateManager {
     this._introStartHandle = null;   // handle from engine.play
     this._introLoopHandle = null;
     this._introLoopTimer = null;     // setTimeout id for the 24s loop trigger
+
+    // Welcome screen music state
+    this._welcomeMusicRequested = false;
+    this._welcomeMusicStarted = false;
   }
 
   // ─── Lifecycle ──────────────────────────────────────────────
@@ -132,6 +136,60 @@ export default class AudioStateManager {
   }
 
   /**
+   * Signal that the welcome screen is active and music should play.
+   * If audio is ready, starts immediately. Otherwise sets a pending flag
+   * so music begins as soon as the system initializes (on first user gesture).
+   */
+  requestWelcomeMusic() {
+    this._welcomeMusicRequested = true;
+    this._startWelcomeMusic();
+  }
+
+  /**
+   * Called after audio system becomes ready (post-gesture init).
+   * Starts any pending welcome music.
+   */
+  onSystemReady() {
+    if (this._welcomeMusicRequested) {
+      this._startWelcomeMusic();
+    }
+  }
+
+  /**
+   * Start the welcome/main-menu music (intro_start → intro_loop).
+   * Idempotent — safe to call multiple times.
+   * @private
+   */
+  _startWelcomeMusic() {
+    if (!this.isReady) return;
+    if (this._welcomeMusicStarted) return;
+    this._welcomeMusicStarted = true;
+    this._splashActive = true;
+
+    // Play intro start music with a gentle fade-in
+    if (this.engine.hasBuffer('intro_start')) {
+      this._introStartHandle = this.engine.play('intro_start', {
+        loop: false,
+        volume: 1,
+        fadeIn: 1.0,
+      });
+    }
+
+    // Schedule loop after intro_start finishes (~24s)
+    this._introLoopTimer = setTimeout(() => {
+      this._introLoopTimer = null;
+      if (!this._splashActive || !this.isReady) return;
+      if (this.engine.hasBuffer('intro_loop')) {
+        this._introLoopHandle = this.engine.play('intro_loop', {
+          loop: true,
+          volume: 1,
+          fadeIn: 0,
+        });
+      }
+    }, 24000);
+  }
+
+  /**
    * Clean up everything.
    */
   async destroy() {
@@ -166,8 +224,8 @@ export default class AudioStateManager {
 
   /**
    * Called when the card selection screen becomes visible.
-   * Intro audio is now started from onEnterDarkness() (welcome screen)
-   * so this only tracks splash state.
+   * Welcome music is already playing (started on welcome screen).
+   * This only tracks splash state.
    */
   onSplashEnter() {
     if (!this.isReady) return;
@@ -176,49 +234,30 @@ export default class AudioStateManager {
 
   /**
    * Called when "Enter the Darkness" is clicked (welcome screen).
-   * Plays the button press sound, the stinger, and starts the intro music.
-   * The stinger plays to full duration (its tail blends with the loop
-   * after 24 seconds). The loop starts without fade-in for a seamless blend.
+   * Plays button press sound and stinger to mask the transition.
+   * Welcome music is already playing (started on first user gesture);
+   * if not yet started, kicks it off now as a fallback.
    */
   async onEnterDarkness(gameLineId = null) {
     if (!this.isReady) return;
     this._splashActive = true;
-
-    // Stop any previously active intro audio
-    this._stopIntroAudio(0);
 
     // Play button press sound
     if (this.engine.hasBuffer('intro_press')) {
       this.transition.play('intro_press', { volume: 1 });
     }
 
-    // Play stinger — do NOT fade it out; after ~24s its tail
-    // blends naturally with the loop start
+    // Play stinger — masks the visual transition
     if (this.engine.hasBuffer('intro_stinger')) {
       this.transition.play('intro_stinger', { volume: 1 });
     }
 
-    // Play intro start music immediately (on the welcome screen)
-    if (this.engine.hasBuffer('intro_start')) {
-      this._introStartHandle = this.engine.play('intro_start', {
-        loop: false,
-        volume: 1,
-        fadeIn: 0,
-      });
+    // Ensure welcome music is playing (fallback for edge case where
+    // the button click is the very first interaction on the page)
+    if (!this._welcomeMusicStarted) {
+      this._welcomeMusicRequested = true;
+      this._startWelcomeMusic();
     }
-
-    // Schedule loop after 24 seconds — no fade-in, seamless blend
-    this._introLoopTimer = setTimeout(() => {
-      this._introLoopTimer = null;
-      if (!this._splashActive || !this.isReady) return;
-      if (this.engine.hasBuffer('intro_loop')) {
-        this._introLoopHandle = this.engine.play('intro_loop', {
-          loop: true,
-          volume: 1,
-          fadeIn: 0,
-        });
-      }
-    }, 24000);
 
     // Fade out drone if it was active
     if (this.drone.isActive) {
