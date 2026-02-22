@@ -2092,7 +2092,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     // Step 2: After a brief pause, trigger the themed transition overlay
     setTimeout(() => {
       setSplashTransition(gameId);
-      // Step 3: After the transition animation plays, navigate
+      // Step 3: After the transition animation plays (1.125s), navigate
       setTimeout(async () => {
         setActiveGameType(gameId);
         await storageSet("wod-active-game-type", gameId);
@@ -2113,7 +2113,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
           saveBeforeSwitch();
           setActiveChronicleId(matching[0].id);
         }
-      }, 1400);
+      }, 1125);
     }, 600);
   };
 
