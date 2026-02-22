@@ -32,6 +32,7 @@ export default function WorldOfDarkness() {
   const [activeGameType, setActiveGameType] = useState(null); // Selected game line (e.g. "vtm", "mta")
   const [selectedSplashCard, setSelectedSplashCard] = useState(null); // Card selected before transition
   const [splashTransition, setSplashTransition] = useState(null); // Active transition effect (e.g. "vtm")
+  const [modalEntrance, setModalEntrance] = useState(false); // Smooth entrance animation for post-splash modal
   const [apiKey, setApiKey] = useState(""); // Anthropic API key
   const [proxyUrl, setProxyUrl] = useState(""); // Optional CORS proxy URL
   const fileInputRef = useRef(null);
@@ -1573,7 +1574,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     if (!showModal) return null;
 
     if (showModal === "newChronicle") return (
-      <Modal onClose={() => setShowModal(null)}>
+      <Modal onClose={() => { setShowModal(null); setModalEntrance(false); }} smoothEntrance={modalEntrance}>
         <div style={{ ...S.cardHeader, color: accent }}>New Chronicle</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <input style={S.input} placeholder="Chronicle Name" value={modalData.name || ""}
@@ -2087,8 +2088,12 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         // Filter chronicles for this game type
         const matching = chronicles.filter(c => c.gameType === gameId);
         if (matching.length === 0 && chronicles.length === 0) {
-          setModalData({ gameType: gameId });
-          setShowModal("newChronicle");
+          // Smooth delayed entrance — let the database screen settle first
+          setTimeout(() => {
+            setModalData({ gameType: gameId });
+            setModalEntrance(true);
+            setShowModal("newChronicle");
+          }, 500);
         } else if (matching.length > 0) {
           saveBeforeSwitch();
           setActiveChronicleId(matching[0].id);
