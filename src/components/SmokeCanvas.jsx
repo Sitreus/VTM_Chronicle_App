@@ -17,7 +17,7 @@ function createParticle(w, h, stagger) {
     x: Math.random() * w,
     y: h * (0.3 + Math.random() * 0.7),
     size: 60 + Math.random() * 180,
-    baseOpacity: 0.02 + Math.random() * 0.06,
+    baseOpacity: 0.018 + Math.random() * 0.054,
     opacity: 0,
     vx: (Math.random() - 0.5) * 0.15,
     vy: -(0.15 + Math.random() * 0.35),

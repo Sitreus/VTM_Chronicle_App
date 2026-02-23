@@ -120,16 +120,6 @@ export default function SplashScreen({
           50% { opacity: 0.8; filter: hue-rotate(60deg) blur(5px); }
           100% { opacity: 1; filter: hue-rotate(120deg) blur(0px); }
         }
-        @keyframes floatUp {
-          0% { transform: translateY(0) translateX(0px); opacity: 0; }
-          5% { opacity: 0.7; }
-          80% { opacity: 0.9; }
-          100% { transform: translateY(-105vh) translateX(var(--drift)); opacity: 0; }
-        }
-        @keyframes particlePulse {
-          0%, 100% { opacity: 0.5; }
-          50% { opacity: 1; }
-        }
       `}</style>
 
       {/* Ambient background noise */}
@@ -167,56 +157,6 @@ export default function SplashScreen({
           Skip →
         </button>
       )}
-
-      {/* Floating golden & blood red particles */}
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 2 }}>
-        {Array.from({ length: 50 }, (_, i) => {
-          const size = 2 + (i % 5) * 1.5;
-          const left = (i * 2.1 + (i * 13) % 17) % 100;
-          const duration = 10 + (i % 8) * 3;
-          const delay = (i * 0.7) % 12;
-          const drift = -40 + (i * 23) % 80;
-          const colorType = i % 5;
-          let bg, glow;
-          if (colorType <= 1) {
-            // Golden embers
-            const goldens = [
-              [`rgba(212, 160, 23, ${0.6 + (i % 4) * 0.1})`, "rgba(212, 160, 23, 0.4)"],
-              [`rgba(196, 168, 100, ${0.5 + (i % 4) * 0.1})`, "rgba(196, 168, 100, 0.3)"],
-              [`rgba(255, 200, 50, ${0.5 + (i % 3) * 0.15})`, "rgba(255, 200, 50, 0.35)"],
-            ];
-            const g = goldens[i % goldens.length];
-            bg = g[0]; glow = g[1];
-          } else if (colorType <= 3) {
-            // Blood red embers
-            const reds = [
-              [`rgba(196, 30, 58, ${0.6 + (i % 4) * 0.1})`, "rgba(196, 30, 58, 0.4)"],
-              [`rgba(178, 34, 34, ${0.55 + (i % 4) * 0.1})`, "rgba(178, 34, 34, 0.35)"],
-              [`rgba(139, 0, 0, ${0.55 + (i % 3) * 0.12})`, "rgba(139, 0, 0, 0.3)"],
-            ];
-            const r = reds[i % reds.length];
-            bg = r[0]; glow = r[1];
-          } else {
-            // Bright hot embers
-            bg = `rgba(255, 220, 180, ${0.4 + (i % 4) * 0.1})`;
-            glow = "rgba(255, 220, 180, 0.3)";
-          }
-          return (
-            <div key={i} style={{
-              position: "absolute",
-              left: `${left}%`,
-              bottom: "0px",
-              width: size,
-              height: size,
-              borderRadius: "50%",
-              background: bg,
-              boxShadow: `0 0 ${size * 3}px ${size}px ${glow}`,
-              "--drift": `${drift}px`,
-              animation: `floatUp ${duration}s ease-in-out ${delay}s infinite, particlePulse ${2 + (i % 3)}s ease-in-out ${delay}s infinite`,
-            }} />
-          );
-        })}
-      </div>
 
       {splashPhase === "welcome" || splashPhase === "fading" ? (
         <div style={{
