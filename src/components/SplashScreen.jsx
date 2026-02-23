@@ -52,12 +52,15 @@ export default function SplashScreen({
         }
         .splash-card {
           position: relative; cursor: pointer; border-radius: 12px;
-          overflow: hidden; transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          overflow: hidden; transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.4s ease, opacity 0.4s ease;
           border: 1px solid rgba(255,255,255,0.06);
           flex: 1 1 0; min-width: 0; max-width: 289px;
         }
-        .splash-card:hover {
-          transform: translateY(-12px) scale(1.03);
+        .splash-cards-row:hover .splash-card {
+          transform: scale(0.97);
+        }
+        .splash-cards-row:hover .splash-card:hover {
+          transform: translateY(-16px) scale(1.07);
           border-color: rgba(255,255,255,0.15);
           z-index: 10;
         }
@@ -72,6 +75,14 @@ export default function SplashScreen({
         .splash-card.splash-card-selected img { filter: brightness(0.9) saturate(1.2); }
         .splash-card.splash-card-selected {
           transform: translateY(-12px) scale(1.05);
+          border-color: rgba(255,255,255,0.25);
+          z-index: 10;
+        }
+        .splash-cards-row:hover .splash-card.splash-card-selected {
+          transform: scale(0.97);
+        }
+        .splash-cards-row:hover .splash-card.splash-card-selected:hover {
+          transform: translateY(-16px) scale(1.07);
           border-color: rgba(255,255,255,0.25);
           z-index: 10;
         }
@@ -203,6 +214,7 @@ export default function SplashScreen({
           display: "flex", flexDirection: "column", alignItems: "center",
           animation: "splashSelectIn 0.8s ease forwards",
           width: "100%", maxWidth: 1900, padding: "0 24px",
+          overflow: "visible",
         }}>
           <h2 style={{
             fontFamily: "'Cinzel', serif", fontSize: "clamp(24px, 4vw, 40px)",
@@ -212,9 +224,9 @@ export default function SplashScreen({
             <span style={{ color: "rgba(196,168,132,0.4)" }}>Choose your</span>{" "}Darkness
           </h2>
 
-          <div style={{
+          <div className="splash-cards-row" style={{
             display: "flex", gap: 18, justifyContent: "center",
-            flexWrap: "nowrap", width: "100%",
+            flexWrap: "nowrap", width: "100%", overflow: "visible",
           }}>
             {splashGames.map((game, i) => {
               const splash = GAME_SPLASH_DATA[game.id];
