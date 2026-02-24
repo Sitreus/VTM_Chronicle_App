@@ -97,8 +97,8 @@ export const S = {
     resize: "vertical", lineHeight: 1.6,
   },
   tag: (color = "#c41e3a") => ({
-    display: "inline-block", padding: "3px 12px", borderRadius: 12,
-    fontSize: 16, fontFamily: "'Cinzel', serif", letterSpacing: 1,
+    display: "inline-block", padding: "5px 16px", borderRadius: 14,
+    fontSize: 28, fontFamily: "'Cinzel', serif", letterSpacing: 1,
     background: `${color}20`, border: `1px solid ${color}50`, color: color,
     marginRight: 6, marginBottom: 4, textShadow: "none",
   }),
