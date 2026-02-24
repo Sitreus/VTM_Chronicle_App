@@ -15,6 +15,9 @@ export default defineConfig({
         secure: false,
         configure: (proxy) => {
           proxy.on("proxyReq", (proxyReq, req) => {
+            // Strip browser-identifying headers so Anthropic doesn't flag as CORS
+            proxyReq.removeHeader("origin");
+            proxyReq.removeHeader("referer");
             console.log(`[proxy] → ${req.method} ${req.url} → https://api.anthropic.com${proxyReq.path}`);
           });
           proxy.on("proxyRes", (proxyRes, req) => {
