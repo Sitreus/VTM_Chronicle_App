@@ -16,12 +16,12 @@ export const callClaude = async (apiKey, messages, { maxTokens = 4096, model = "
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    const msg = body?.error?.message || `API error ${res.status}`;
-    if (res.status === 401) throw new Error("Invalid API key. Check your key in Settings (\u2699).");
-    if (res.status === 403) throw new Error("API access forbidden. Your key may lack permissions.");
-    if (res.status === 429) throw new Error("Rate limited. Please wait a moment and try again.");
-    if (res.status === 529) throw new Error("Anthropic API is overloaded. Please try again later.");
-    throw new Error(msg);
+    const apiMsg = body?.error?.message || "";
+    if (res.status === 401) throw new Error(`Authentication failed (401): ${apiMsg || "Invalid API key. Check your key in Settings (\u2699)."}`);
+    if (res.status === 403) throw new Error(`Access forbidden (403): ${apiMsg || "Your key may lack permissions."}`);
+    if (res.status === 429) throw new Error(`Rate limited (429): ${apiMsg || "Please wait a moment and try again."}`);
+    if (res.status === 529) throw new Error(`API overloaded (529): ${apiMsg || "Please try again later."}`);
+    throw new Error(apiMsg || `API error ${res.status}`);
   }
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || "Unknown API error");
