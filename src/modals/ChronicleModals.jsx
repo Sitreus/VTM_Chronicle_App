@@ -1,6 +1,6 @@
 import { GAME_TYPES, RELATIONSHIP_TYPES, THREAD_STATUSES, ATTITUDE_LEVELS, INFLUENCE_LEVELS } from "../constants.js";
 import { S } from "../styles.js";
-import { callClaude } from "../utils/claude.js";
+import { callClaude, diagnoseConnection } from "../utils/claude.js";
 import { stripMarkdown } from "../utils/claude.js";
 import { storageSet } from "../utils/storage.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
@@ -474,6 +474,21 @@ export default function ChronicleModals() {
             The built-in proxy handles CORS automatically. Leave blank — it just works. Only change this if you deploy the app elsewhere.
           </p>
         </div>
+        {modalData._diagSteps && modalData._diagSteps.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {modalData._diagSteps.map((s, i) => (
+              <div key={i} style={{
+                padding: "6px 10px", borderRadius: 4, fontSize: 12,
+                fontFamily: "'Fira Code', monospace",
+                background: s.ok ? "rgba(74,140,63,0.1)" : "rgba(196,30,58,0.1)",
+                border: `1px solid ${s.ok ? "rgba(74,140,63,0.2)" : "rgba(196,30,58,0.2)"}`,
+                color: s.ok ? "#6aaa5a" : "#d06060",
+              }}>
+                {s.ok ? "\u2713" : "\u2717"} <strong>{s.step}</strong>: {s.detail}
+              </div>
+            ))}
+          </div>
+        )}
         {modalData._testResult && (
           <div style={{
             padding: "8px 12px", borderRadius: 6, fontSize: 13,
@@ -488,15 +503,14 @@ export default function ChronicleModals() {
           <button style={{ ...S.btnFilled(accent), flex: 1 }} onClick={async () => {
             const key = (modalData.apiKey || "").trim();
             const proxy = (modalData.proxyUrl || "").trim();
-            if (!key) { setModalData(d => ({ ...d, _testResult: { ok: false, msg: "Please enter an API key." } })); return; }
-            setModalData(d => ({ ...d, _testResult: { ok: true, msg: "Testing connection..." } }));
-            try {
-              await callClaude(key, [{ role: "user", content: "Say OK" }], { maxTokens: 8, proxyUrl: proxy || undefined });
-              setModalData(d => ({ ...d, _testResult: { ok: true, msg: "Connection successful! API key is valid." } }));
-            } catch (e) {
-              setModalData(d => ({ ...d, _testResult: { ok: false, msg: e.message } }));
-            }
-          }}>Test Connection</button>
+            setModalData(d => ({ ...d, _testResult: { ok: true, msg: "Diagnosing connection..." }, _diagSteps: [] }));
+            const result = await diagnoseConnection(key, proxy || undefined);
+            setModalData(d => ({
+              ...d,
+              _diagSteps: result.steps,
+              _testResult: { ok: result.ok, msg: result.summary },
+            }));
+          }}>Diagnose Connection</button>
           <button style={{ ...S.btnFilled(accent), flex: 1 }} onClick={async () => {
             const key = (modalData.apiKey || "").trim();
             const proxy = (modalData.proxyUrl || "").trim();

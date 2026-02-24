@@ -1,6 +1,66 @@
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const DEFAULT_PROXY = "/api/claude/v1/messages";
 
+export const diagnoseConnection = async (apiKey, proxyUrl) => {
+  const steps = [];
+  const url = proxyUrl || DEFAULT_PROXY;
+  const baseUrl = url.replace(/\/v1\/messages$/, "");
+
+  // Step 1: Test proxy / network reachability
+  try {
+    const pingRes = await fetch(baseUrl, { method: "GET" });
+    steps.push({ step: "Proxy reachable", ok: true, detail: `${baseUrl} → HTTP ${pingRes.status}` });
+  } catch (e) {
+    steps.push({ step: "Proxy reachable", ok: false, detail: `Cannot reach ${baseUrl}: ${e.message}` });
+    return { ok: false, steps, summary: "Network error — the proxy or API endpoint is unreachable. If you're running the dev server, make sure it's started." };
+  }
+
+  // Step 2: Check API key format
+  const trimmedKey = (apiKey || "").trim();
+  if (!trimmedKey) {
+    steps.push({ step: "API key present", ok: false, detail: "No API key entered." });
+    return { ok: false, steps, summary: "Please enter your Anthropic API key." };
+  }
+  const keyLooksValid = trimmedKey.startsWith("sk-ant-");
+  steps.push({ step: "API key format", ok: keyLooksValid, detail: keyLooksValid ? `Starts with sk-ant-... (${trimmedKey.length} chars)` : `Key does not start with "sk-ant-" — may be invalid. Got "${trimmedKey.substring(0, 8)}..."` });
+
+  // Step 3: Authenticate with a minimal API call
+  try {
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": trimmedKey,
+      "anthropic-version": "2023-06-01",
+    };
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4, messages: [{ role: "user", content: "Hi" }] }),
+    });
+    if (res.ok) {
+      steps.push({ step: "API authentication", ok: true, detail: "API key accepted — connection works!" });
+      return { ok: true, steps, summary: "All checks passed. Connection is working." };
+    }
+    const body = await res.json().catch(() => ({}));
+    const apiMsg = body?.error?.message || "";
+    const errType = body?.error?.type || "";
+    steps.push({
+      step: "API authentication",
+      ok: false,
+      detail: `HTTP ${res.status}${errType ? ` [${errType}]` : ""}: ${apiMsg || "Unknown error"}`,
+    });
+    let summary = `API returned ${res.status}. `;
+    if (res.status === 401) summary += apiMsg || "The API key is not valid. Double-check it at console.anthropic.com/settings/keys.";
+    else if (res.status === 403) summary += apiMsg || "Your key may lack permissions for this model.";
+    else if (res.status === 429) summary += "Rate limited — wait a moment and try again.";
+    else if (res.status === 529) summary += "Anthropic API is overloaded — try again later.";
+    else summary += apiMsg || "Unexpected error.";
+    return { ok: false, steps, summary };
+  } catch (e) {
+    steps.push({ step: "API authentication", ok: false, detail: `Request failed: ${e.message}` });
+    return { ok: false, steps, summary: `Connection to API failed: ${e.message}` };
+  }
+};
+
 export const callClaude = async (apiKey, messages, { maxTokens = 4096, model = "claude-sonnet-4-20250514", proxyUrl } = {}) => {
   if (!apiKey) throw new Error("API key not set. Open Settings (\u2699) to add your Anthropic API key.");
   const url = proxyUrl || DEFAULT_PROXY;
