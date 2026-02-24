@@ -122,41 +122,37 @@ export default function SplashScreen({
           overflow: hidden;
           transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
                       border-color 0.4s ease, opacity 0.4s ease,
-                      flex 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
                       margin 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           border: 1px solid rgba(255,255,255,0.06);
           flex: 1 1 0; min-width: 0; max-width: 289px;
-          aspect-ratio: 1920 / 1080;
         }
         .splash-card.splash-card-hovered {
-          flex: 2.2 1 0;
-          max-width: 600px;
+          transform: scale(2);
           z-index: 10;
           border-color: rgba(255,255,255,0.2);
+          margin: 0 60px;
         }
         .splash-card.splash-card-sibling-hovered {
-          flex: 0.7 1 0;
-          max-width: 200px;
-          opacity: 0.75;
+          transform: scale(0.82);
+          opacity: 0.7;
         }
         .splash-card.splash-card-hovered .splash-card-overlay { opacity: 0.4; }
         .splash-card.splash-card-hovered .splash-card-glow { opacity: 1; }
         .splash-card img {
-          width: 100%; height: 100%; object-fit: cover; display: block;
+          width: 100%; height: 425px; object-fit: cover; display: block;
           filter: brightness(0.5) saturate(0) contrast(0.9);
           transition: all 0.6s ease;
         }
         .splash-card.splash-card-hovered img { filter: brightness(0.8) saturate(0.7); }
         .splash-card.splash-card-selected img { filter: brightness(0.9) saturate(1.2); }
         .splash-card.splash-card-selected {
-          flex: 1.8 1 0;
-          max-width: 500px;
+          transform: scale(1.18);
           border-color: rgba(255,255,255,0.25);
           z-index: 10;
         }
         .splash-card.splash-card-selected.splash-card-hovered {
-          flex: 2.2 1 0;
-          max-width: 600px;
+          transform: scale(2);
+          margin: 0 60px;
         }
         .splash-card.splash-card-selected .splash-card-glow { opacity: 1; }
         .splash-card.splash-card-selected .splash-card-overlay { opacity: 0.3; }
@@ -297,8 +293,8 @@ export default function SplashScreen({
           </h2>
 
           <div className="splash-cards-row" style={{
-            display: "flex", gap: 14, justifyContent: "center", alignItems: "center",
-            flexWrap: "nowrap", width: "100%", overflow: "hidden",
+            display: "flex", gap: 18, justifyContent: "center", alignItems: "center",
+            flexWrap: "nowrap", width: "100%", overflow: "visible",
             padding: "20px 0",
           }}>
             {splashGames.map((game, i) => {
