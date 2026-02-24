@@ -84,7 +84,7 @@ function WorldOfDarknessInner() {
           <h1 style={S.title}>World of Darkness</h1>
           <div style={S.subtitle}>Chronicle Database</div>
           <div style={S.bgBar}>
-            <button style={{ ...S.bgBtn(false), letterSpacing: 1.5, fontFamily: "'Cinzel', serif", fontSize: 11 }}
+            <button style={{ ...S.bgBtn(false), letterSpacing: 1.5, fontFamily: "'Cinzel', serif", fontSize: 11, color: "#c4b49e", fontWeight: 700 }}
               onClick={() => { saveBeforeSwitch(); setShowSplash(true); setSplashPhase("select"); }}>
               ◈ Selection Menu
             </button>
