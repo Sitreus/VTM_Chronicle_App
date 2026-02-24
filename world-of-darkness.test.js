@@ -316,11 +316,17 @@ describe("Source file verification: all fixes and API integration", () => {
   let mainSource;
   let claudeSource;
   let splashSource;
+  let actionsSource;
+  let modalsSource;
+  let contextSource;
   beforeAll(async () => {
     const fs = await import("fs");
     mainSource = fs.readFileSync("/home/user/VTM_Chronicle_App/src/WorldOfDarkness.jsx", "utf-8");
     claudeSource = fs.readFileSync("/home/user/VTM_Chronicle_App/src/utils/claude.js", "utf-8");
     splashSource = fs.readFileSync("/home/user/VTM_Chronicle_App/src/components/SplashScreen.jsx", "utf-8");
+    actionsSource = fs.readFileSync("/home/user/VTM_Chronicle_App/src/hooks/useChronicleActions.js", "utf-8");
+    modalsSource = fs.readFileSync("/home/user/VTM_Chronicle_App/src/modals/ChronicleModals.jsx", "utf-8");
+    contextSource = fs.readFileSync("/home/user/VTM_Chronicle_App/src/context/ChronicleContext.jsx", "utf-8");
   });
 
   it("has centralized callClaude helper with auth headers", () => {
@@ -334,9 +340,9 @@ describe("Source file verification: all fixes and API integration", () => {
     expect(claudeSource).toContain("const res = await fetch(url,");
     const rawFetches = claudeSource.match(/fetch\("https:\/\/api\.anthropic\.com/g);
     expect(rawFetches).toBeNull();
-    // callClaude usages: session parse + recap in main, parseCharacter in claude.js
-    const mainUsages = mainSource.match(/await callClaude\(apiKey/g);
-    expect(mainUsages).toHaveLength(2);
+    // callClaude usages: session parse + recap in actions hook, parseCharacter in claude.js
+    const actionsUsages = actionsSource.match(/await callClaude\(apiKey/g);
+    expect(actionsUsages).toHaveLength(2);
     const claudeUsages = claudeSource.match(/await callClaude\(apiKey/g);
     expect(claudeUsages).toHaveLength(1);
   });
@@ -352,7 +358,7 @@ describe("Source file verification: all fixes and API integration", () => {
   });
 
   it("has guard for invalid status in cycle thread", () => {
-    expect(mainSource).toContain("if (cur < 0) return;");
+    expect(actionsSource).toContain("if (cur < 0) return;");
   });
 
   it("has image regex before link regex in stripMarkdown", () => {
@@ -364,25 +370,29 @@ describe("Source file verification: all fixes and API integration", () => {
   });
 
   it("has apiKey and proxyUrl state and storage management", () => {
-    expect(mainSource).toContain('const [apiKey, setApiKey] = useState("")');
-    expect(mainSource).toContain('const [proxyUrl, setProxyUrl] = useState("")');
-    expect(mainSource).toContain('storageGet("wod-api-key")');
-    expect(mainSource).toContain('storageSet("wod-api-key"');
-    expect(mainSource).toContain('storageGet("wod-proxy-url")');
-    expect(mainSource).toContain('storageSet("wod-proxy-url"');
+    // State is now in the context provider
+    expect(contextSource).toContain('const [apiKey, setApiKey] = useState("")');
+    expect(contextSource).toContain('const [proxyUrl, setProxyUrl] = useState("")');
+    expect(contextSource).toContain('storageGet("wod-api-key")');
+    // storageSet for api key/proxy is in modals (settings save)
+    expect(modalsSource).toContain('storageSet("wod-api-key"');
+    expect(contextSource).toContain('storageGet("wod-proxy-url")');
+    expect(modalsSource).toContain('storageSet("wod-proxy-url"');
   });
 
   it("has API key validation before API calls", () => {
-    const mainChecks = mainSource.match(/if \(!apiKey\)/g) || [];
+    // API key checks are now in the actions hook + claude.js
+    const actionsChecks = actionsSource.match(/if \(!apiKey\)/g) || [];
     const claudeChecks = claudeSource.match(/if \(!apiKey\)/g) || [];
-    expect(mainChecks.length + claudeChecks.length).toBeGreaterThanOrEqual(4);
+    expect(actionsChecks.length + claudeChecks.length).toBeGreaterThanOrEqual(4);
   });
 
   it("has settings modal with test connection and proxy URL", () => {
-    expect(mainSource).toContain('showModal === "settings"');
-    expect(mainSource).toContain("Test Connection");
-    expect(mainSource).toContain("CORS Proxy URL");
-    expect(mainSource).toContain("Save Settings");
+    // Settings modal is now in ChronicleModals
+    expect(modalsSource).toContain('showModal === "settings"');
+    expect(modalsSource).toContain("Test Connection");
+    expect(modalsSource).toContain("CORS Proxy URL");
+    expect(modalsSource).toContain("Save Settings");
   });
 
   it("has API key setup button on splash screen", () => {
@@ -391,8 +401,9 @@ describe("Source file verification: all fixes and API integration", () => {
   });
 
   it("passes proxyUrl through to all API calls", () => {
-    const mainPasses = mainSource.match(/\{ *(?:maxTokens: \d+, *)?proxyUrl *\}/g) || [];
+    // proxyUrl is now passed through in the actions hook + claude.js
+    const actionsPasses = actionsSource.match(/\{ *(?:maxTokens: \d+, *)?proxyUrl *\}/g) || [];
     const claudePasses = claudeSource.match(/\{ *(?:maxTokens: \d+, *)?proxyUrl *\}/g) || [];
-    expect(mainPasses.length + claudePasses.length).toBeGreaterThanOrEqual(3);
+    expect(actionsPasses.length + claudePasses.length).toBeGreaterThanOrEqual(3);
   });
 });
