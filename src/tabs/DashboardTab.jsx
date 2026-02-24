@@ -55,7 +55,7 @@ export default memo(function DashboardTab() {
           ].map(s => (
             <div key={s.label} style={{ textAlign: "center" }}>
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: 36, fontWeight: 700, color: accent }}>{s.val}</div>
-              <div style={{ fontSize: 15, fontFamily: "'Cinzel', serif", letterSpacing: 2, color: "#a09888", textTransform: "uppercase" }}>{s.label}</div>
+              <div style={{ fontSize: 26, fontFamily: "'Cinzel', serif", letterSpacing: 2, color: "#a09888", textTransform: "uppercase" }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -92,8 +92,8 @@ export default memo(function DashboardTab() {
               <div key={c.id} style={{ ...S.card, flex: "0 0 auto", textAlign: "center", padding: 16, minWidth: 120 }}>
                 <ProgressClock segments={c.segments} filled={c.filled} accent={accent} size={70}
                   onClick={() => advanceClock(c.id, 1)} />
-                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 14, letterSpacing: 1, color: "#e8dcc6", marginTop: 8 }}>{c.name}</div>
-                <div style={{ fontSize: 12, color: "#7a7068", textTransform: "uppercase", letterSpacing: 1 }}>{c.type || "threat"}</div>
+                <div style={{ fontFamily: "'Cinzel', serif", fontSize: 28, letterSpacing: 1, color: "#e8dcc6", marginTop: 8 }}>{c.name}</div>
+                <div style={{ fontSize: 24, color: "#7a7068", textTransform: "uppercase", letterSpacing: 1 }}>{c.type || "threat"}</div>
                 <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 6 }}>
                   <button style={{ ...S.btn(accent), padding: "2px 8px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); advanceClock(c.id, -1); }}>−</button>
                   <button style={{ ...S.btn(accent), padding: "2px 8px", fontSize: 12 }} onClick={(e) => { e.stopPropagation(); setModalData(c); setShowModal("editClock"); }}>✎</button>
@@ -115,10 +115,10 @@ export default memo(function DashboardTab() {
           {activeThreadsList.map(t => (
             <div key={t.id} style={{ ...S.card, padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <span style={{ fontFamily: "'Cinzel', serif", fontSize: 18, color: "#f0e6d4" }}>{t.title}</span>
-                {t.description && <div style={{ fontSize: 17, color: "#b0a490", marginTop: 2 }}>{t.description}</div>}
+                <span style={{ fontFamily: "'Cinzel', serif", fontSize: 36, color: "#f0e6d4" }}>{t.title}</span>
+                {t.description && <div style={{ fontSize: 34, color: "#b0a490", marginTop: 2 }}>{t.description}</div>}
               </div>
-              <span style={{ ...S.tag(accent), fontSize: 11 }}>{t.type || "mystery"}</span>
+              <span style={{ ...S.tag(accent), fontSize: 22 }}>{t.type || "mystery"}</span>
             </div>
           ))}
         </div>
