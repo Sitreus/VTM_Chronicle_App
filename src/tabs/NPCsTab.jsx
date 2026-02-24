@@ -1,10 +1,11 @@
+import { memo, useMemo } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import EmptyState from "../components/EmptyState.jsx";
 import NPCCard from "../components/NPCCard.jsx";
 
-export default function NPCsTab() {
+export default memo(function NPCsTab() {
   const {
     chronicleData, accent,
     searchFilter, setSearchFilter, npcRelFilter, setNpcRelFilter,
@@ -13,22 +14,31 @@ export default function NPCsTab() {
   } = useChronicle();
   const { deleteNPC } = useChronicleActions();
 
-  const cd = chronicleData || { npcs: [] };
-  const allNpcs = cd.npcs || [];
-  const factions = [...new Set(allNpcs.map(n => n.faction).filter(Boolean))].sort();
-  const relationships = [...new Set(allNpcs.map(n => n.relationship).filter(Boolean))].sort();
+  const allNpcs = useMemo(() => chronicleData?.npcs || [], [chronicleData?.npcs]);
 
-  let filtered = allNpcs;
-  if (searchFilter) {
-    const q = searchFilter.toLowerCase();
-    filtered = filtered.filter(n =>
-      n.name.toLowerCase().includes(q) || n.faction?.toLowerCase().includes(q) ||
-      n.description?.toLowerCase().includes(q) || n.personality?.toLowerCase().includes(q) ||
-      n.backstory?.toLowerCase().includes(q) || n.notes?.toLowerCase().includes(q)
-    );
-  }
-  if (npcRelFilter) filtered = filtered.filter(n => n.relationship === npcRelFilter);
-  if (npcFactionFilter) filtered = filtered.filter(n => n.faction === npcFactionFilter);
+  const factions = useMemo(
+    () => [...new Set(allNpcs.map(n => n.faction).filter(Boolean))].sort(),
+    [allNpcs]
+  );
+  const relationships = useMemo(
+    () => [...new Set(allNpcs.map(n => n.relationship).filter(Boolean))].sort(),
+    [allNpcs]
+  );
+
+  const filtered = useMemo(() => {
+    let result = allNpcs;
+    if (searchFilter) {
+      const q = searchFilter.toLowerCase();
+      result = result.filter(n =>
+        n.name.toLowerCase().includes(q) || n.faction?.toLowerCase().includes(q) ||
+        n.description?.toLowerCase().includes(q) || n.personality?.toLowerCase().includes(q) ||
+        n.backstory?.toLowerCase().includes(q) || n.notes?.toLowerCase().includes(q)
+      );
+    }
+    if (npcRelFilter) result = result.filter(n => n.relationship === npcRelFilter);
+    if (npcFactionFilter) result = result.filter(n => n.faction === npcFactionFilter);
+    return result;
+  }, [allNpcs, searchFilter, npcRelFilter, npcFactionFilter]);
 
   // Relationship Web rendering
   const renderWeb = () => {
@@ -186,4 +196,4 @@ export default function NPCsTab() {
       )}
     </div>
   );
-}
+});

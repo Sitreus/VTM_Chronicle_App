@@ -1,10 +1,11 @@
+import { memo } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import EmptyState from "../components/EmptyState.jsx";
 import ProgressClock from "../components/ProgressClock.jsx";
 
-export default function ThreadsTab() {
+export default memo(function ThreadsTab() {
   const { chronicleData, accent, setModalData, setShowModal } = useChronicle();
   const { advanceClock, deleteClock, cycleThreadStatus, deleteThread } = useChronicleActions();
 
@@ -113,4 +114,4 @@ export default function ThreadsTab() {
       )}
     </div>
   );
-}
+});

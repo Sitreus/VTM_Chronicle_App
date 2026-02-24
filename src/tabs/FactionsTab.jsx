@@ -1,10 +1,11 @@
+import { memo } from "react";
 import { S } from "../styles.js";
 import { INFLUENCE_LEVELS } from "../constants.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import EmptyState from "../components/EmptyState.jsx";
 
-export default function FactionsTab() {
+export default memo(function FactionsTab() {
   const { chronicleData, accent, setModalData, setShowModal } = useChronicle();
   const { deleteFaction } = useChronicleActions();
 
@@ -78,4 +79,4 @@ export default function FactionsTab() {
       )}
     </div>
   );
-}
+});

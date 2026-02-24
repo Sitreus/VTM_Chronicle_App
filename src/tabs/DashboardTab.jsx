@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
@@ -6,13 +7,14 @@ import SessionCard from "../components/SessionCard.jsx";
 import NPCCard from "../components/NPCCard.jsx";
 import ProgressClock from "../components/ProgressClock.jsx";
 
-export default function DashboardTab() {
+export default memo(function DashboardTab() {
   const { activeChronicle, chronicleData, accent, gameType, parsing, setModalData, setShowModal } = useChronicle();
   const { generateRecap, exportChronicle, deleteChronicle, deleteSession, deleteNPC, advanceClock, deleteClock } = useChronicleActions();
 
   if (!activeChronicle) return <EmptyState text="Create a chronicle to begin" />;
   const cd = chronicleData || { sessions: [], npcs: [], characters: [], storyBeats: [], plotThreads: [], clocks: [] };
-  const activeThreads = (cd.plotThreads || []).filter(t => t.status === "active").length;
+  const activeThreads = useMemo(() => (cd.plotThreads || []).filter(t => t.status === "active").length, [cd.plotThreads]);
+  const activeThreadsList = useMemo(() => (cd.plotThreads || []).filter(t => t.status === "active").slice(0, 4), [cd.plotThreads]);
 
   return (
     <div>
@@ -106,10 +108,10 @@ export default function DashboardTab() {
         </div>
       )}
       {/* Active Threads preview */}
-      {(cd.plotThreads || []).filter(t => t.status === "active").length > 0 && (
+      {activeThreadsList.length > 0 && (
         <div>
           <div style={{ ...S.cardHeader, color: accent, marginTop: 12 }}>Active Threads</div>
-          {(cd.plotThreads || []).filter(t => t.status === "active").slice(0, 4).map(t => (
+          {activeThreadsList.map(t => (
             <div key={t.id} style={{ ...S.card, padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <span style={{ fontFamily: "'Cinzel', serif", fontSize: 18, color: "#f0e6d4" }}>{t.title}</span>
@@ -122,4 +124,4 @@ export default function DashboardTab() {
       )}
     </div>
   );
-}
+});

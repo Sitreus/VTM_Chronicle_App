@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
@@ -8,7 +9,7 @@ const typeIcons = {
   church: "⛪", graveyard: "⚰", warehouse: "🏭", mansion: "🏰", other: "📍",
 };
 
-export default function LocationsTab() {
+export default memo(function LocationsTab() {
   const { chronicleData, accent, setModalData, setShowModal } = useChronicle();
   const { deleteLocation } = useChronicleActions();
 
@@ -63,4 +64,4 @@ export default function LocationsTab() {
       )}
     </div>
   );
-}
+});

@@ -1,10 +1,11 @@
+import { memo } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import EmptyState from "../components/EmptyState.jsx";
 import SessionCard from "../components/SessionCard.jsx";
 
-export default function SessionsTab() {
+export default memo(function SessionsTab() {
   const { chronicleData, accent, setModalData, setShowModal, sessionFileRef } = useChronicle();
   const { deleteSession } = useChronicleActions();
 
@@ -34,4 +35,4 @@ export default function SessionsTab() {
       )}
     </div>
   );
-}
+});

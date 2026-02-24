@@ -1,21 +1,24 @@
+import { memo, useMemo } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 
-export default function TimelineTab() {
+export default memo(function TimelineTab() {
   const { chronicleData, accent } = useChronicle();
 
-  const cd = chronicleData || { storyBeats: [] };
-  const beats = cd.storyBeats || [];
+  const beats = chronicleData?.storyBeats || [];
 
-  // Group by session
-  const grouped = {};
-  beats.forEach(b => {
-    const key = b.session || 0;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(b);
-  });
-  const sortedKeys = Object.keys(grouped).sort((a, b) => Number(b) - Number(a));
+  // Group by session — memoized so it only recomputes when beats change
+  const { grouped, sortedKeys } = useMemo(() => {
+    const g = {};
+    beats.forEach(b => {
+      const key = b.session || 0;
+      if (!g[key]) g[key] = [];
+      g[key].push(b);
+    });
+    const keys = Object.keys(g).sort((a, b) => Number(b) - Number(a));
+    return { grouped: g, sortedKeys: keys };
+  }, [beats]);
 
   return (
     <div>
@@ -45,4 +48,4 @@ export default function TimelineTab() {
       )}
     </div>
   );
-}
+});

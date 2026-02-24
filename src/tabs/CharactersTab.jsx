@@ -1,9 +1,10 @@
+import { memo } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import EmptyState from "../components/EmptyState.jsx";
 
-export default function CharactersTab() {
+export default memo(function CharactersTab() {
   const { chronicleData, accent, setModalData, setShowModal, characterFileRef } = useChronicle();
   const { deleteCharacter } = useChronicleActions();
 
@@ -65,4 +66,4 @@ export default function CharactersTab() {
       )}
     </div>
   );
-}
+});
