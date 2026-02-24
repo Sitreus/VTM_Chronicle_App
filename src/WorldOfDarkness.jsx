@@ -2110,14 +2110,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         setSelectedSplashCard(null);
         // Filter chronicles for this game type
         const matching = chronicles.filter(c => c.gameType === gameId);
-        if (matching.length === 0 && chronicles.length === 0) {
-          // Smooth delayed entrance — let the database screen settle first
-          setTimeout(() => {
-            setModalData({ gameType: gameId });
-            setModalEntrance(true);
-            setShowModal("newChronicle");
-          }, 500);
-        } else if (matching.length > 0) {
+        if (matching.length > 0) {
           saveBeforeSwitch();
           setActiveChronicleId(matching[0].id);
         }

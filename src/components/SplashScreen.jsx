@@ -16,6 +16,7 @@ export default function SplashScreen({
 }) {
   const splashGames = GAME_TYPES.filter(g => g.id !== "mixed");
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [cardsReady, setCardsReady] = useState(false);
   const idleTimerRef = useRef(null);
   const idleStageRef = useRef(0); // 0 = none, 1 = first audio played, 2 = second audio played
   const audioElementRef = useRef(null);
@@ -76,6 +77,16 @@ export default function SplashScreen({
     onSplashSelect(gameId);
   }, [clearIdleTimers, onSplashSelect]);
 
+  // Mark cards as interactable after entrance animation finishes
+  useEffect(() => {
+    if (splashPhase === "select") {
+      setCardsReady(false);
+      const totalAnimTime = (splashGames.length - 1) * 180 + 1200; // last card delay + duration
+      const timer = setTimeout(() => setCardsReady(true), totalAnimTime);
+      return () => clearTimeout(timer);
+    }
+  }, [splashPhase, splashGames.length]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => clearIdleTimers();
@@ -109,9 +120,12 @@ export default function SplashScreen({
           50% { text-shadow: 0 0 40px rgba(196,30,58,0.5), 0 0 100px rgba(196,30,58,0.2); }
         }
         @keyframes splashLineExpand { from { width: 0; } to { width: 200px; } }
-        @keyframes cardSlideUp {
-          from { opacity: 0; transform: translateY(40px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes cardEmerge {
+          0% { opacity: 0; transform: scale(0.7) translateY(60px); filter: blur(12px) brightness(0.2); }
+          40% { opacity: 0.6; transform: scale(0.92) translateY(20px); filter: blur(4px) brightness(0.5); }
+          70% { opacity: 0.9; transform: scale(1.03) translateY(-4px); filter: blur(1px) brightness(0.85); }
+          85% { transform: scale(0.99) translateY(2px); filter: blur(0px) brightness(0.95); }
+          100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px) brightness(1); }
         }
         @keyframes subtitleFade {
           from { opacity: 0; transform: translateY(10px); }
@@ -125,6 +139,9 @@ export default function SplashScreen({
                       margin 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           border: 1px solid rgba(255,255,255,0.06);
           flex: 1 1 0; min-width: 0; max-width: 289px;
+        }
+        .splash-card.splash-card-locked {
+          pointer-events: none;
         }
         .splash-card.splash-card-hovered {
           transform: scale(1.2);
@@ -303,19 +320,20 @@ export default function SplashScreen({
               const isSiblingHovered = hoveredCard && hoveredCard !== game.id;
               const cardClasses = [
                 "splash-card",
+                !cardsReady ? "splash-card-locked" : "",
                 selectedSplashCard === game.id ? "splash-card-selected" : "",
                 isHovered ? "splash-card-hovered" : "",
                 isSiblingHovered ? "splash-card-sibling-hovered" : "",
               ].filter(Boolean).join(" ");
               return (
                 <div key={game.id} className={cardClasses}
-                  style={{ animationName: "cardSlideUp", animationDuration: "0.6s",
-                    animationTimingFunction: "ease", animationDelay: `${i * 0.12}s`,
+                  style={{ animationName: "cardEmerge", animationDuration: "1.2s",
+                    animationTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)", animationDelay: `${i * 0.18}s`,
                     animationFillMode: "backwards",
                   }}
-                  onMouseEnter={() => handleCardHover(game.id)}
+                  onMouseEnter={() => cardsReady && handleCardHover(game.id)}
                   onMouseLeave={handleCardLeave}
-                  onClick={() => handleCardClick(game.id)}
+                  onClick={() => cardsReady && handleCardClick(game.id)}
                 >
                   <div className="splash-card-glow" style={{
                     position: "absolute", inset: -2, borderRadius: 14,
