@@ -24,14 +24,17 @@ export default function useChronicleActions() {
     if (!name?.trim()) return;
     const id = `chr-${Date.now()}`;
     const newChr = { id, name: name.trim(), gameType: gt || "vtm", description: description || "", createdAt: new Date().toISOString() };
-    await storageSet(`wod-chr-${id}`, { sessions: [], npcs: [], characters: [], storyBeats: [] });
-    const newList = [...chronicles, newChr];
-    await saveChronicles(newList);
+    const emptyData = { sessions: [], npcs: [], characters: [], storyBeats: [] };
+    await storageSet(`wod-chr-${id}`, emptyData);
     await saveBeforeSwitch();
+    const newList = [...chronicles, newChr];
+    // Set all state together so React batches them in one render
+    setChronicleData(emptyData);
     setActiveChronicleId(id);
     setShowModal(null);
     setModalData({});
-  }, [modalData, chronicles, saveChronicles, saveBeforeSwitch, setActiveChronicleId, setShowModal, setModalData]);
+    await saveChronicles(newList);
+  }, [modalData, chronicles, saveChronicles, saveBeforeSwitch, setActiveChronicleId, setChronicleData, setShowModal, setModalData]);
 
   const deleteChronicle = useCallback(async () => {
     if (!activeChronicleId || !activeChronicle) return;

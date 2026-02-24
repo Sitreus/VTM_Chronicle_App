@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import WorldOfDarkness from "./WorldOfDarkness.jsx";
 
 // Polyfill window.storage using localStorage
@@ -21,6 +22,8 @@ if (!window.storage) {
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <WorldOfDarkness />
+    <ErrorBoundary>
+      <WorldOfDarkness />
+    </ErrorBoundary>
   </React.StrictMode>
 );

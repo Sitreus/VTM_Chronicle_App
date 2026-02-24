@@ -111,16 +111,17 @@ export function ChronicleProvider({ children }) {
   // When game type changes, select first matching chronicle
   useEffect(() => {
     if (!activeGameType || chronicles.length === 0) return;
+    const curId = activeChronicleIdRef.current;
     const matching = chronicles.filter(c => c.gameType === activeGameType);
     if (matching.length > 0) {
-      if (!activeChronicleId || !matching.find(c => c.id === activeChronicleId)) {
+      if (!curId || !matching.find(c => c.id === curId)) {
         saveBeforeSwitch();
         setActiveChronicleId(matching[0].id);
       }
     } else {
       setActiveChronicleId(null);
     }
-  }, [activeGameType, chronicles.length]);
+  }, [activeGameType, chronicles.length, saveBeforeSwitch]);
 
   // Load chronicle data when selection changes
   useEffect(() => {
