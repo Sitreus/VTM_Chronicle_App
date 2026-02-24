@@ -11,6 +11,7 @@ import NPCCard from "./components/NPCCard.jsx";
 import SessionCard from "./components/SessionCard.jsx";
 import SplashScreen from "./components/SplashScreen.jsx";
 import AudioControl from "./components/AudioControl.jsx";
+import DynamicBackground from "./components/DynamicBackground.jsx";
 import useAudio from "./audio/useAudio.js";
 
 export default function WorldOfDarkness() {
@@ -2138,16 +2139,10 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     );
   };
 
+  const currentGameTypeId = activeGameType || (gameType ? gameType.id : null);
+
   return (
-    <div style={{
-      ...S.app,
-      ...(bgImage ? {
-        backgroundImage: `linear-gradient(180deg, rgba(8,8,13,0.72) 0%, rgba(13,13,20,0.78) 40%, rgba(10,10,18,0.84) 100%), url("${bgImage}")`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-      } : {}),
-    }}>
+    <div style={S.app}>
       <style>{`
         @import url('${FONTS_URL}');
         @keyframes wod-spin { to { transform: rotate(360deg); } }
@@ -2159,6 +2154,8 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         input:focus, textarea:focus, select:focus { outline: none; border-color: ${accent}60; }
         button:hover { opacity: 0.85; }
       `}</style>
+      {!showSplash && <DynamicBackground gameTypeId={currentGameTypeId} bgImage={bgImage} />}
+      {!showSplash && !bgImage && <div style={S.noiseOverlay} />}
       {showSplash && <SplashScreen
         splashPhase={splashPhase} setSplashPhase={setSplashPhase}
         selectedSplashCard={selectedSplashCard} splashTransition={splashTransition}
@@ -2169,7 +2166,6 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         audio={audio}
         cardAudioFiles={CARD_AUDIO_FILES}
       />}
-      {!bgImage && <div style={S.noiseOverlay} />}
       <div style={S.content}>
         {/* Header */}
         <div style={S.header}>
