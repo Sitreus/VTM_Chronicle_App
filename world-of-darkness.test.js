@@ -390,7 +390,7 @@ describe("Source file verification: all fixes and API integration", () => {
   it("has settings modal with test connection and proxy URL", () => {
     // Settings modal is now in ChronicleModals
     expect(modalsSource).toContain('showModal === "settings"');
-    expect(modalsSource).toContain("Test Connection");
+    expect(modalsSource).toContain("Diagnose Connection");
     expect(modalsSource).toContain("CORS Proxy URL");
     expect(modalsSource).toContain("Save Settings");
   });
