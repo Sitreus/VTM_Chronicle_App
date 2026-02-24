@@ -11,10 +11,11 @@ export default memo(function DashboardTab() {
   const { activeChronicle, chronicleData, accent, gameType, parsing, setModalData, setShowModal } = useChronicle();
   const { generateRecap, exportChronicle, deleteChronicle, deleteSession, deleteNPC, advanceClock, deleteClock } = useChronicleActions();
 
-  if (!activeChronicle) return <EmptyState text="Create a chronicle to begin" />;
   const cd = chronicleData || { sessions: [], npcs: [], characters: [], storyBeats: [], plotThreads: [], clocks: [] };
   const activeThreads = useMemo(() => (cd.plotThreads || []).filter(t => t.status === "active").length, [cd.plotThreads]);
   const activeThreadsList = useMemo(() => (cd.plotThreads || []).filter(t => t.status === "active").slice(0, 4), [cd.plotThreads]);
+
+  if (!activeChronicle) return <EmptyState text="Create a chronicle to begin" />;
 
   return (
     <div>
