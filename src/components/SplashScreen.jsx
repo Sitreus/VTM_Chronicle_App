@@ -127,10 +127,10 @@ export default function SplashScreen({
           flex: 1 1 0; min-width: 0; max-width: 289px;
         }
         .splash-card.splash-card-hovered {
-          transform: scale(1.5);
+          transform: scale(1.2);
           z-index: 10;
           border-color: rgba(255,255,255,0.2);
-          margin: 0 30px;
+          margin: 0 15px;
         }
         .splash-card.splash-card-sibling-hovered {
           transform: scale(0.88);
@@ -151,8 +151,8 @@ export default function SplashScreen({
           z-index: 10;
         }
         .splash-card.splash-card-selected.splash-card-hovered {
-          transform: scale(1.5);
-          margin: 0 30px;
+          transform: scale(1.2);
+          margin: 0 15px;
         }
         .splash-card.splash-card-selected .splash-card-glow { opacity: 1; }
         .splash-card.splash-card-selected .splash-card-overlay { opacity: 0.3; }
