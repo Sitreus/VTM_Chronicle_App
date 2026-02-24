@@ -311,7 +311,7 @@ export default function SplashScreen({
                 <div key={game.id} className={cardClasses}
                   style={{ animationName: "cardSlideUp", animationDuration: "0.6s",
                     animationTimingFunction: "ease", animationDelay: `${i * 0.12}s`,
-                    animationFillMode: "both",
+                    animationFillMode: "backwards",
                   }}
                   onMouseEnter={() => handleCardHover(game.id)}
                   onMouseLeave={handleCardLeave}
