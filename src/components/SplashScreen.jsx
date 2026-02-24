@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect, useCallback } from "react";
 import { GAME_TYPES, FONTS_URL } from "../constants.js";
 import { GAME_SPLASH_DATA } from "../splashImages.js";
 import AudioControl from "./AudioControl.jsx";
@@ -11,8 +12,74 @@ export default function SplashScreen({
   apiKey, proxyUrl,
   onSplashSelect,
   audio,
+  cardAudioFiles,
 }) {
   const splashGames = GAME_TYPES.filter(g => g.id !== "mixed");
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const idleTimerRef = useRef(null);
+  const idleStageRef = useRef(0); // 0 = none, 1 = first audio played, 2 = second audio played
+  const audioElementRef = useRef(null);
+
+  // Idle audio: when a card is hovered (selected via hover) and not clicked for 10s/20s
+  const clearIdleTimers = useCallback(() => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.currentTime = 0;
+      audioElementRef.current = null;
+    }
+    idleStageRef.current = 0;
+  }, []);
+
+  const playCardAudio = useCallback((gameId, audioIndex) => {
+    if (!cardAudioFiles?.[gameId]?.[audioIndex]) return;
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.currentTime = 0;
+    }
+    const el = new Audio(cardAudioFiles[gameId][audioIndex]);
+    el.volume = 0.6;
+    el.play().catch(() => {});
+    audioElementRef.current = el;
+  }, [cardAudioFiles]);
+
+  const startIdleTimer = useCallback((gameId) => {
+    clearIdleTimers();
+    // First audio after 10 seconds of no click
+    idleTimerRef.current = setTimeout(() => {
+      playCardAudio(gameId, 0);
+      idleStageRef.current = 1;
+      // Second audio after another 10 seconds
+      idleTimerRef.current = setTimeout(() => {
+        playCardAudio(gameId, 1);
+        idleStageRef.current = 2;
+        idleTimerRef.current = null;
+      }, 10000);
+    }, 10000);
+  }, [clearIdleTimers, playCardAudio]);
+
+  const handleCardHover = useCallback((gameId) => {
+    setHoveredCard(gameId);
+    startIdleTimer(gameId);
+  }, [startIdleTimer]);
+
+  const handleCardLeave = useCallback(() => {
+    setHoveredCard(null);
+    clearIdleTimers();
+  }, [clearIdleTimers]);
+
+  const handleCardClick = useCallback((gameId) => {
+    clearIdleTimers();
+    onSplashSelect(gameId);
+  }, [clearIdleTimers, onSplashSelect]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => clearIdleTimers();
+  }, [clearIdleTimers]);
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
@@ -52,39 +119,44 @@ export default function SplashScreen({
         }
         .splash-card {
           position: relative; cursor: pointer; border-radius: 12px;
-          overflow: hidden; transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.4s ease, opacity 0.4s ease;
+          overflow: hidden;
+          transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                      border-color 0.4s ease, opacity 0.4s ease,
+                      flex 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                      margin 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           border: 1px solid rgba(255,255,255,0.06);
           flex: 1 1 0; min-width: 0; max-width: 289px;
+          aspect-ratio: 1920 / 1080;
         }
-        .splash-cards-row:hover .splash-card {
-          transform: scale(0.97);
-        }
-        .splash-cards-row:hover .splash-card:hover {
-          transform: translateY(-24px) scale(1.25);
-          border-color: rgba(255,255,255,0.15);
+        .splash-card.splash-card-hovered {
+          flex: 2.2 1 0;
+          max-width: 600px;
           z-index: 10;
+          border-color: rgba(255,255,255,0.2);
         }
-        .splash-card:hover .splash-card-overlay { opacity: 0.4; }
-        .splash-card:hover .splash-card-glow { opacity: 1; }
+        .splash-card.splash-card-sibling-hovered {
+          flex: 0.7 1 0;
+          max-width: 200px;
+          opacity: 0.75;
+        }
+        .splash-card.splash-card-hovered .splash-card-overlay { opacity: 0.4; }
+        .splash-card.splash-card-hovered .splash-card-glow { opacity: 1; }
         .splash-card img {
-          width: 100%; height: 425px; object-fit: cover; display: block;
+          width: 100%; height: 100%; object-fit: cover; display: block;
           filter: brightness(0.5) saturate(0) contrast(0.9);
           transition: all 0.6s ease;
         }
-        .splash-card:hover img { filter: brightness(0.7) saturate(0.6); }
+        .splash-card.splash-card-hovered img { filter: brightness(0.8) saturate(0.7); }
         .splash-card.splash-card-selected img { filter: brightness(0.9) saturate(1.2); }
         .splash-card.splash-card-selected {
-          transform: translateY(-18px) scale(1.18);
+          flex: 1.8 1 0;
+          max-width: 500px;
           border-color: rgba(255,255,255,0.25);
           z-index: 10;
         }
-        .splash-cards-row:hover .splash-card.splash-card-selected {
-          transform: scale(0.97);
-        }
-        .splash-cards-row:hover .splash-card.splash-card-selected:hover {
-          transform: translateY(-24px) scale(1.25);
-          border-color: rgba(255,255,255,0.25);
-          z-index: 10;
+        .splash-card.splash-card-selected.splash-card-hovered {
+          flex: 2.2 1 0;
+          max-width: 600px;
         }
         .splash-card.splash-card-selected .splash-card-glow { opacity: 1; }
         .splash-card.splash-card-selected .splash-card-overlay { opacity: 0.3; }
@@ -225,18 +297,29 @@ export default function SplashScreen({
           </h2>
 
           <div className="splash-cards-row" style={{
-            display: "flex", gap: 18, justifyContent: "center",
-            flexWrap: "nowrap", width: "100%", overflow: "visible",
+            display: "flex", gap: 14, justifyContent: "center", alignItems: "center",
+            flexWrap: "nowrap", width: "100%", overflow: "hidden",
+            padding: "20px 0",
           }}>
             {splashGames.map((game, i) => {
               const splash = GAME_SPLASH_DATA[game.id];
+              const isHovered = hoveredCard === game.id;
+              const isSiblingHovered = hoveredCard && hoveredCard !== game.id;
+              const cardClasses = [
+                "splash-card",
+                selectedSplashCard === game.id ? "splash-card-selected" : "",
+                isHovered ? "splash-card-hovered" : "",
+                isSiblingHovered ? "splash-card-sibling-hovered" : "",
+              ].filter(Boolean).join(" ");
               return (
-                <div key={game.id} className={`splash-card${selectedSplashCard === game.id ? " splash-card-selected" : ""}`}
+                <div key={game.id} className={cardClasses}
                   style={{ animationName: "cardSlideUp", animationDuration: "0.6s",
                     animationTimingFunction: "ease", animationDelay: `${i * 0.12}s`,
                     animationFillMode: "both",
                   }}
-                  onClick={() => onSplashSelect(game.id)}
+                  onMouseEnter={() => handleCardHover(game.id)}
+                  onMouseLeave={handleCardLeave}
+                  onClick={() => handleCardClick(game.id)}
                 >
                   <div className="splash-card-glow" style={{
                     position: "absolute", inset: -2, borderRadius: 14,

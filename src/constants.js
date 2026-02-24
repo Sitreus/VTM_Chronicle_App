@@ -27,6 +27,17 @@ export const TABS = [
   { id: "timeline", label: "Timeline", icon: "📅" },
 ];
 
+// Per-card idle audio files. Each game type maps to [firstAudio, secondAudio].
+// Replace the null values with actual audio file paths when available.
+export const CARD_AUDIO_FILES = {
+  vtm: [null, null],
+  mta: [null, null],
+  wta: [null, null],
+  wto: [null, null],
+  htr: [null, null],
+  ctd: [null, null],
+};
+
 export const THREAD_STATUSES = ["active", "cold", "resolved"];
 export const ATTITUDE_LEVELS = ["Hostile", "Unfriendly", "Wary", "Neutral", "Curious", "Friendly", "Allied"];
 export const INFLUENCE_LEVELS = ["None", "Minor", "Notable", "Significant", "Dominant"];

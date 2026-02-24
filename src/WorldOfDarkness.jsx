@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { FONTS_URL, GAME_TYPES, RELATIONSHIP_TYPES, TABS, THREAD_STATUSES, ATTITUDE_LEVELS, INFLUENCE_LEVELS } from "./constants.js";
+import { FONTS_URL, GAME_TYPES, RELATIONSHIP_TYPES, TABS, THREAD_STATUSES, ATTITUDE_LEVELS, INFLUENCE_LEVELS, CARD_AUDIO_FILES } from "./constants.js";
 import { GAME_SPLASH_DATA, GAME_BACKGROUNDS, DEFAULT_BG } from "./splashImages.js";
 import { S } from "./styles.js";
 import { storageGet, storageSet } from "./utils/storage.js";
@@ -2174,6 +2174,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
         apiKey={apiKey} proxyUrl={proxyUrl}
         onSplashSelect={handleSplashSelect}
         audio={audio}
+        cardAudioFiles={CARD_AUDIO_FILES}
       />}
       {!bgImage && <div style={S.noiseOverlay} />}
       <div style={S.content}>
