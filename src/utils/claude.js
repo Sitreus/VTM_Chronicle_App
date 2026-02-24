@@ -30,6 +30,7 @@ export const diagnoseConnection = async (apiKey, proxyUrl) => {
       "Content-Type": "application/json",
       "x-api-key": trimmedKey,
       "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
     };
     const res = await fetch(url, {
       method: "POST",
@@ -68,6 +69,7 @@ export const callClaude = async (apiKey, messages, { maxTokens = 4096, model = "
     "Content-Type": "application/json",
     "x-api-key": apiKey,
     "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
   };
   const res = await fetch(url, {
     method: "POST",
