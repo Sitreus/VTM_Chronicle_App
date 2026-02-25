@@ -7,7 +7,7 @@ import SessionCard from "../components/SessionCard.jsx";
 import SessionDiff from "../components/SessionDiff.jsx";
 
 export default memo(function SessionsTab() {
-  const { chronicleData, accent, setModalData, setShowModal, sessionFileRef, sessionViewMode, setSessionViewMode } = useChronicle();
+  const { chronicleData, accent, setModalData, setShowModal, sessionFileRef } = useChronicle();
   const { deleteSession } = useChronicleActions();
   const [showDiff, setShowDiff] = useState(false);
 

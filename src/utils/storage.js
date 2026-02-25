@@ -10,3 +10,15 @@ export const storageSet = async (key, val) => {
     await window.storage.set(key, JSON.stringify(val));
   } catch (e) { console.error("Storage error:", e); }
 };
+
+export const storageDelete = async (key) => {
+  try {
+    await window.storage.delete(key);
+  } catch (e) { console.error("Storage delete error:", e); }
+};
+
+// Canonical empty chronicle data shape
+export const EMPTY_CHRONICLE_DATA = {
+  sessions: [], npcs: [], characters: [], storyBeats: [],
+  plotThreads: [], clocks: [], factions: [], locationDossiers: [], rumors: [],
+};

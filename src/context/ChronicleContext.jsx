@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { GAME_TYPES, CARD_AUDIO_FILES } from "../constants.js";
 import { GAME_BACKGROUNDS, DEFAULT_BG } from "../splashImages.js";
-import { storageGet, storageSet } from "../utils/storage.js";
+import { storageGet, storageSet, EMPTY_CHRONICLE_DATA } from "../utils/storage.js";
 import useAudio from "../audio/useAudio.js";
 import useUndoHistory from "../hooks/useUndoHistory.js";
 
@@ -33,8 +33,7 @@ export function ChronicleProvider({ children }) {
   const [proxyUrl, setProxyUrl] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [locViewMode, setLocViewMode] = useState("grid");
-  const [sessionViewMode, setSessionViewMode] = useState("list");
-  const [charViewMode, setCharViewMode] = useState("cards");
+  // sessionViewMode and charViewMode removed — unused in rendering logic
 
   const undoHistory = useUndoHistory();
 
@@ -139,7 +138,7 @@ export function ChronicleProvider({ children }) {
     (async () => {
       const data = await storageGet(`wod-chr-${activeChronicleId}`);
       if (!cancelled) {
-        setChronicleData(data || { sessions: [], npcs: [], characters: [], storyBeats: [] });
+        setChronicleData(data || { ...EMPTY_CHRONICLE_DATA });
       }
     })();
     return () => { cancelled = true; };
@@ -194,8 +193,6 @@ export function ChronicleProvider({ children }) {
     proxyUrl, setProxyUrl,
     showSearch, setShowSearch,
     locViewMode, setLocViewMode,
-    sessionViewMode, setSessionViewMode,
-    charViewMode, setCharViewMode,
 
     // Undo
     undoHistory,

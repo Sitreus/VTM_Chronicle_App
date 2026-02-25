@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { GAME_TYPES } from "../constants.js";
-import { storageSet } from "../utils/storage.js";
+import { storageSet, storageDelete, EMPTY_CHRONICLE_DATA } from "../utils/storage.js";
 import { callClaude, repairJSON, parseCharacterMarkdown, stripMarkdown } from "../utils/claude.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 
@@ -53,7 +53,7 @@ export default function useChronicleActions() {
     if (!name?.trim()) return;
     const id = `chr-${Date.now()}`;
     const newChr = { id, name: name.trim(), gameType: gt || "vtm", description: description || "", createdAt: new Date().toISOString() };
-    const emptyData = { sessions: [], npcs: [], characters: [], storyBeats: [] };
+    const emptyData = { ...EMPTY_CHRONICLE_DATA };
     await storageSet(`wod-chr-${id}`, emptyData);
     await saveBeforeSwitch();
     const newList = [...chronicles, newChr];
@@ -72,7 +72,7 @@ export default function useChronicleActions() {
     setConfirmAction({
       msg: `Delete chronicle "${nameToDelete}" and ALL its sessions, NPCs, characters, and story beats? This cannot be undone.`,
       onConfirm: async () => {
-        try { await window.storage.delete(`wod-chr-${idToDelete}`); } catch {}
+        await storageDelete(`wod-chr-${idToDelete}`);
         const newList = chronicles.filter(c => c.id !== idToDelete);
         await saveChronicles(newList);
         const sameType = activeGameType ? newList.filter(c => c.gameType === activeGameType) : newList;
@@ -195,6 +195,10 @@ CRITICAL RULES:
       parseError = e.message || "Unknown error";
     }
 
+    // Use fresh data from ref after the async API call to avoid overwriting
+    // any changes made while the AI was parsing (stale closure prevention)
+    const freshData = () => chronicleDataRef.current || chronicleData;
+
     if (parsed) {
       newSession.summary = parsed.summary || "";
       newSession.storyBeats = parsed.storyBeats || [];
@@ -211,7 +215,8 @@ CRITICAL RULES:
         history: [{ session: sessionNum, event: `First encountered. ${n.notes || ""}` }],
       }));
 
-      const updatedNpcs = [...(chronicleData.npcs || [])];
+      const cd = freshData();
+      const updatedNpcs = [...(cd.npcs || [])];
       (parsed.updatedNPCs || []).forEach(upd => {
         const idx = updatedNpcs.findIndex(n => n.name.toLowerCase() === upd.name.toLowerCase());
         if (idx >= 0) {
@@ -234,7 +239,7 @@ CRITICAL RULES:
         }
       });
 
-      const updatedChars = [...(chronicleData.characters || [])];
+      const updatedChars = [...(cd.characters || [])];
       (parsed.characterUpdates || []).forEach(upd => {
         const idx = updatedChars.findIndex(c => c.name.toLowerCase() === upd.name.toLowerCase());
         if (idx >= 0) {
@@ -257,7 +262,7 @@ CRITICAL RULES:
         session: sessionNum, text: b, date: newSession.date,
       }));
 
-      const updatedThreads = [...(chronicleData.plotThreads || [])];
+      const updatedThreads = [...(cd.plotThreads || [])];
       (parsed.newThreads || []).forEach(t => {
         updatedThreads.push({
           id: `thr-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -277,7 +282,7 @@ CRITICAL RULES:
         }
       });
 
-      const updatedClocks = [...(chronicleData.clocks || [])];
+      const updatedClocks = [...(cd.clocks || [])];
       (parsed.clockUpdates || []).forEach(upd => {
         const idx = updatedClocks.findIndex(c => c.name.toLowerCase() === upd.name.toLowerCase());
         if (idx >= 0) {
@@ -290,7 +295,7 @@ CRITICAL RULES:
         type: c.type || "threat",
       }));
 
-      const updatedFactions = [...(chronicleData.factions || [])];
+      const updatedFactions = [...(cd.factions || [])];
       (parsed.factionMentions || []).forEach(fm => {
         const idx = updatedFactions.findIndex(f => f.name.toLowerCase() === fm.name.toLowerCase());
         if (idx >= 0) {
@@ -309,7 +314,7 @@ CRITICAL RULES:
         }
       });
 
-      const updatedLocs = [...(chronicleData.locationDossiers || [])];
+      const updatedLocs = [...(cd.locationDossiers || [])];
       (parsed.locationDetails || []).forEach(ld => {
         const idx = updatedLocs.findIndex(l => l.name.toLowerCase() === ld.name.toLowerCase());
         if (idx >= 0) {
@@ -331,11 +336,11 @@ CRITICAL RULES:
       });
 
       const newData = {
-        ...chronicleData,
-        sessions: [...(chronicleData.sessions || []), newSession],
+        ...cd,
+        sessions: [...(cd.sessions || []), newSession],
         npcs: [...updatedNpcs, ...newNPCs],
         characters: updatedChars,
-        storyBeats: [...(chronicleData.storyBeats || []), ...newBeats],
+        storyBeats: [...(cd.storyBeats || []), ...newBeats],
         plotThreads: updatedThreads,
         clocks: [...updatedClocks, ...suggestedClocks],
         factions: updatedFactions,
@@ -349,9 +354,10 @@ CRITICAL RULES:
       const threadCount = (parsed.newThreads || []).length;
       setParseStatus({ type: "success", msg: `Session ${sessionNum} saved — ${npcCount} new NPC${npcCount !== 1 ? "s" : ""}, ${updCount} updated, ${beatCount} beat${beatCount !== 1 ? "s" : ""}${threadCount ? `, ${threadCount} new thread${threadCount !== 1 ? "s" : ""}` : ""}` });
     } else {
+      const cd = freshData();
       const newData = {
-        ...chronicleData,
-        sessions: [...(chronicleData.sessions || []), newSession],
+        ...cd,
+        sessions: [...(cd.sessions || []), newSession],
       };
       await saveChronicleData(newData);
       setParseStatus({ type: "error", msg: `Session saved but parsing failed: ${parseError || "could not parse AI response"}. NPCs need manual entry.` });
@@ -360,7 +366,7 @@ CRITICAL RULES:
     setParsing(false);
     setShowModal(null);
     setModalData({});
-  }, [modalData, chronicleData, apiKey, proxyUrl, activeChronicle, saveChronicleData, setParsing, setParseStatus, setShowModal, setModalData]);
+  }, [modalData, chronicleData, chronicleDataRef, apiKey, proxyUrl, activeChronicle, saveChronicleData, setParsing, setParseStatus, setShowModal, setModalData]);
 
   // ─── NPC Management ─────
   const saveNPC = useCallback(async () => {
