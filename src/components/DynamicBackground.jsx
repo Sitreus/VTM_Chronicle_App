@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 // Themed particle palettes and behaviors per game type
 const GAME_PARTICLES = {
@@ -245,10 +245,11 @@ const DEFAULT_PARTICLES = GAME_PARTICLES.vtm;
 
 export default function DynamicBackground({ gameTypeId, bgImage }) {
   const canvasRef = useRef(null);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const bgRef = useRef(null);
   const panRef = useRef({ angle: Math.random() * Math.PI * 2, time: 0 });
 
-  // Slow pan/parallax for the background image
+  // Slow pan/parallax for the background image — uses direct DOM mutation
+  // instead of setState to avoid triggering 60fps React re-renders.
   useEffect(() => {
     let animId;
     const pan = panRef.current;
@@ -256,7 +257,9 @@ export default function DynamicBackground({ gameTypeId, bgImage }) {
       pan.time += 0.0003;
       const x = Math.sin(pan.time + pan.angle) * 12;
       const y = Math.cos(pan.time * 0.7 + pan.angle) * 8;
-      setPanOffset({ x, y });
+      if (bgRef.current) {
+        bgRef.current.style.transform = `translate(${x}px, ${y}px) scale(1.04)`;
+      }
       animId = requestAnimationFrame(animatePan);
     }
     animatePan();
@@ -331,12 +334,12 @@ export default function DynamicBackground({ gameTypeId, bgImage }) {
     <>
       {/* Parallax panning background image */}
       {bgImage && (
-        <div style={{
+        <div ref={bgRef} style={{
           position: "fixed", inset: "-20px",
           backgroundImage: `linear-gradient(180deg, rgba(8,8,13,0.72) 0%, rgba(13,13,20,0.78) 40%, rgba(10,10,18,0.84) 100%), url("${bgImage}")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(1.04)`,
+          transform: "translate(0px, 0px) scale(1.04)",
           transition: "transform 0.1s linear",
           zIndex: 0,
         }} />
