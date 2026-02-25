@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useRef } from "react";
 import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
@@ -6,10 +6,12 @@ import EmptyState from "../components/EmptyState.jsx";
 import SessionCard from "../components/SessionCard.jsx";
 import NPCCard from "../components/NPCCard.jsx";
 import ProgressClock from "../components/ProgressClock.jsx";
+import RumorBoard from "../components/RumorBoard.jsx";
 
 export default memo(function DashboardTab() {
   const { activeChronicle, chronicleData, accent, gameType, parsing, setModalData, setShowModal } = useChronicle();
-  const { generateRecap, exportChronicle, deleteChronicle, deleteSession, deleteNPC, advanceClock, deleteClock } = useChronicleActions();
+  const { generateRecap, exportChronicle, exportChronicleJSON, importChronicleJSON, deleteChronicle, deleteSession, deleteNPC, advanceClock, deleteClock, addRumor, removeRumor, updateRumor } = useChronicleActions();
+  const jsonImportRef = useRef(null);
 
   const cd = chronicleData || { sessions: [], npcs: [], characters: [], storyBeats: [], plotThreads: [], clocks: [] };
   const activeThreads = useMemo(() => (cd.plotThreads || []).filter(t => t.status === "active").length, [cd.plotThreads]);
@@ -33,8 +35,13 @@ export default memo(function DashboardTab() {
                 {parsing ? "Generating..." : "📺 Previously on..."}
               </button>
             )}
-            <button style={S.btn(accent)} onClick={exportChronicle}>📥 Export .md</button>
-            <button style={S.btn("#6a3333")} onClick={deleteChronicle}>Delete Chronicle</button>
+            <button style={S.btn(accent)} onClick={exportChronicle}>📥 .md</button>
+            <button style={S.btn(accent)} onClick={exportChronicleJSON}>📦 .json</button>
+            <button style={S.btn(accent)} onClick={() => jsonImportRef.current?.click()}>📂 Import</button>
+            <input ref={jsonImportRef} type="file" accept=".json" hidden
+              onChange={e => { if (e.target.files?.[0]) importChronicleJSON(e.target.files[0]); e.target.value = ""; }} />
+            <button style={S.btn(accent)} onClick={() => setShowModal("printView")}>🖨 Print</button>
+            <button style={S.btn("#6a3333")} onClick={deleteChronicle}>Delete</button>
           </div>
         </div>
         {activeChronicle.description && (
@@ -108,6 +115,15 @@ export default memo(function DashboardTab() {
           </div>
         </div>
       )}
+      {/* Rumor Board */}
+      <RumorBoard
+        rumors={cd.rumors || []}
+        accent={accent}
+        onAdd={addRumor}
+        onRemove={removeRumor}
+        onUpdate={updateRumor}
+      />
+
       {/* Active Threads preview */}
       {activeThreadsList.length > 0 && (
         <div>

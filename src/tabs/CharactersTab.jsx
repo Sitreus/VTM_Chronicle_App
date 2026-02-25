@@ -3,6 +3,7 @@ import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import EmptyState from "../components/EmptyState.jsx";
+import CharacterSheet from "../components/CharacterSheet.jsx";
 
 const STAT_PREFIXES = [
   "Generation/Rank", "Sire/Mentor", "Haven", "Faction",
@@ -30,7 +31,6 @@ function formatNotes(notes) {
 }
 
 function formatStatValue(label, value) {
-  // Stat lines with comma-separated items get sub-bullets
   const isListStat = ["Attributes", "Abilities", "Disciplines/Spheres", "Merits & Flaws", "Known Allies", "Known Enemies"].includes(label);
   if (!isListStat) return [value];
   return value.split(/,\s*/).filter(Boolean);
@@ -38,8 +38,9 @@ function formatStatValue(label, value) {
 
 const BACKSTORY_TRUNCATE = 300;
 
-function CharacterCard({ ch, accent, onEdit, onDelete }) {
+function CharacterCard({ ch, accent, onEdit, onDelete, onStatsChange, viewMode }) {
   const [expanded, setExpanded] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
   const { plainLines, statEntries } = formatNotes(ch.notes);
 
   const toggleExpand = useCallback((e) => {
@@ -70,8 +71,24 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
         </div>
       </div>
 
+      {/* Character Sheet Toggle */}
+      <button onClick={(e) => { e.stopPropagation(); setShowSheet(v => !v); }}
+        style={{
+          ...S.btn(accent), position: "absolute", top: 8, right: 36,
+          padding: "4px 10px", fontSize: 12,
+        }}>
+        {showSheet ? "▲ Hide Sheet" : "📋 Sheet"}
+      </button>
+
+      {/* Character Sheet */}
+      {showSheet && (
+        <div style={{ marginTop: 12 }} onClick={e => e.stopPropagation()}>
+          <CharacterSheet character={ch} accent={accent} onStatsChange={onStatsChange} />
+        </div>
+      )}
+
       {/* Backstory — collapsible */}
-      {ch.backstory && (
+      {!showSheet && ch.backstory && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 22, lineHeight: 1.7, color: "#d4c8ae", whiteSpace: "pre-wrap" }}>
             {expanded || !hasLongBackstory
@@ -91,14 +108,14 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
       )}
 
       {/* Plain notes (non-stat lines) */}
-      {plainLines.length > 0 && (
+      {!showSheet && plainLines.length > 0 && (
         <div style={{ marginTop: 8, fontSize: 21, fontStyle: "italic", color: "#b0a490", whiteSpace: "pre-wrap" }}>
           {plainLines.join("\n")}
         </div>
       )}
 
       {/* Stats — formatted as bullet points */}
-      {statEntries.length > 0 && (
+      {!showSheet && statEntries.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div style={S.divider} />
           {statEntries.map(({ label, value }, i) => {
@@ -141,7 +158,7 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
 
 export default memo(function CharactersTab() {
   const { chronicleData, accent, setModalData, setShowModal, characterFileRef } = useChronicle();
-  const { deleteCharacter } = useChronicleActions();
+  const { deleteCharacter, updateCharacterStats } = useChronicleActions();
 
   const cd = chronicleData || { characters: [] };
 
@@ -166,7 +183,8 @@ export default memo(function CharactersTab() {
         cd.characters.map(ch => (
           <CharacterCard key={ch.id} ch={ch} accent={accent}
             onEdit={(c) => { setModalData(c); setShowModal("editCharacter"); }}
-            onDelete={deleteCharacter} />
+            onDelete={deleteCharacter}
+            onStatsChange={(stats) => updateCharacterStats(ch.id, stats)} />
         ))
       )}
     </div>

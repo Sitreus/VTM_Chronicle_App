@@ -16,7 +16,36 @@ export default function useChronicleActions() {
     saveBeforeSwitch, saveChronicles, saveChronicleData,
     activeChronicleIdRef, chronicleDataRef,
     fileInputRef, sessionFileRef, characterFileRef,
+    undoHistory,
   } = ctx;
+
+  // Wrap saveChronicleData to push undo state
+  const saveWithUndo = useCallback(async (newData, label = "Change") => {
+    if (chronicleDataRef.current) {
+      undoHistory.pushState(label, chronicleDataRef.current);
+    }
+    await saveChronicleData(newData);
+  }, [saveChronicleData, chronicleDataRef, undoHistory]);
+
+  const performUndo = useCallback(async () => {
+    const state = undoHistory.undo();
+    if (state) {
+      undoHistory.setIsUndoRedoing(true);
+      await saveChronicleData(state.data);
+      undoHistory.setIsUndoRedoing(false);
+      setParseStatus({ type: "success", msg: `Undid: ${state.label}` });
+    }
+  }, [undoHistory, saveChronicleData, setParseStatus]);
+
+  const performRedo = useCallback(async () => {
+    const state = undoHistory.redo();
+    if (state) {
+      undoHistory.setIsUndoRedoing(true);
+      await saveChronicleData(state.data);
+      undoHistory.setIsUndoRedoing(false);
+      setParseStatus({ type: "success", msg: `Redid: ${state.label}` });
+    }
+  }, [undoHistory, saveChronicleData, setParseStatus]);
 
   // ─── Chronicle CRUD ─────
   const createChronicle = useCallback(async () => {
@@ -768,6 +797,94 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     await saveChronicleData({ ...chronicleData, characters: (chronicleData.characters || []).filter(c => c.id !== id) });
   }, [chronicleData, saveChronicleData]);
 
+  // ─── JSON Export ─────
+  const exportChronicleJSON = useCallback(() => {
+    if (!chronicleData || !activeChronicle) return;
+    const exportData = {
+      _format: "wod-chronicle-v1",
+      chronicle: activeChronicle,
+      data: chronicleData,
+      exportedAt: new Date().toISOString(),
+    };
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activeChronicle.name.replace(/[^a-zA-Z0-9]/g, "_")}_chronicle.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [chronicleData, activeChronicle]);
+
+  // ─── JSON Import ─────
+  const importChronicleJSON = useCallback(async (file) => {
+    try {
+      const text = await readTextFile(file);
+      const imported = JSON.parse(text);
+
+      if (imported._format === "wod-chronicle-v1" && imported.chronicle && imported.data) {
+        // Full chronicle import
+        const id = `chr-${Date.now()}`;
+        const newChr = {
+          ...imported.chronicle,
+          id,
+          name: imported.chronicle.name + " (imported)",
+          createdAt: new Date().toISOString(),
+        };
+        await storageSet(`wod-chr-${id}`, imported.data);
+        await saveBeforeSwitch();
+        const newList = [...chronicles, newChr];
+        setChronicleData(imported.data);
+        setActiveChronicleId(id);
+        await saveChronicles(newList);
+        setParseStatus({ type: "success", msg: `Imported chronicle "${imported.chronicle.name}" with ${(imported.data.sessions || []).length} sessions, ${(imported.data.npcs || []).length} NPCs` });
+      } else {
+        setParseStatus({ type: "error", msg: "Invalid chronicle file format. Expected WoD Chronicle JSON export." });
+      }
+    } catch (e) {
+      setParseStatus({ type: "error", msg: `Import failed: ${e.message}` });
+    }
+  }, [readTextFile, chronicles, saveChronicles, saveBeforeSwitch, setActiveChronicleId, setChronicleData, setParseStatus]);
+
+  // ─── Rumor Board ─────
+  const addRumor = useCallback(async (rumor) => {
+    if (!chronicleData) return;
+    const rumors = [...(chronicleData.rumors || []), rumor];
+    await saveWithUndo({ ...chronicleData, rumors }, "Add rumor");
+  }, [chronicleData, saveWithUndo]);
+
+  const removeRumor = useCallback(async (id) => {
+    if (!chronicleData) return;
+    const rumors = (chronicleData.rumors || []).filter(r => r.id !== id);
+    await saveWithUndo({ ...chronicleData, rumors }, "Remove rumor");
+  }, [chronicleData, saveWithUndo]);
+
+  const updateRumor = useCallback(async (rumor) => {
+    if (!chronicleData) return;
+    const rumors = (chronicleData.rumors || []).map(r => r.id === rumor.id ? rumor : r);
+    await saveWithUndo({ ...chronicleData, rumors }, "Update rumor");
+  }, [chronicleData, saveWithUndo]);
+
+  // ─── Character Stats (Sheet) ─────
+  const updateCharacterStats = useCallback(async (charId, stats) => {
+    if (!chronicleData) return;
+    const chars = (chronicleData.characters || []).map(c =>
+      c.id === charId ? { ...c, stats, updatedAt: new Date().toISOString() } : c
+    );
+    await saveChronicleData({ ...chronicleData, characters: chars });
+  }, [chronicleData, saveChronicleData]);
+
+  // ─── Inline Session Notes Editor ─────
+  const updateSessionNotes = useCallback(async (sessionId, fields) => {
+    if (!chronicleData) return;
+    const sessions = (chronicleData.sessions || []).map(s =>
+      s.id === sessionId ? { ...s, ...fields } : s
+    );
+    await saveWithUndo({ ...chronicleData, sessions }, "Edit session notes");
+  }, [chronicleData, saveWithUndo]);
+
   return {
     createChronicle, deleteChronicle, deleteSession,
     addSession, saveNPC, deleteNPC,
@@ -779,5 +896,10 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     exportChronicle,
     handleSessionFileUpload, handleCharacterFileUpload, handleCharacterMarkdownUpdate,
     saveCharacter, deleteCharacter,
+    // New features
+    exportChronicleJSON, importChronicleJSON,
+    addRumor, removeRumor, updateRumor,
+    updateCharacterStats, updateSessionNotes,
+    performUndo, performRedo,
   };
 }

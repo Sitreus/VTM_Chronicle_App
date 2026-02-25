@@ -3,6 +3,7 @@ import { S } from "../styles.js";
 import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import EmptyState from "../components/EmptyState.jsx";
+import LocationMap from "../components/LocationMap.jsx";
 
 const typeIcons = {
   haven: "🏚", elysium: "🏛", bar: "🍷", street: "🌃", leyNode: "✨",
@@ -10,7 +11,7 @@ const typeIcons = {
 };
 
 export default memo(function LocationsTab() {
-  const { chronicleData, accent, setModalData, setShowModal } = useChronicle();
+  const { chronicleData, accent, setModalData, setShowModal, locViewMode, setLocViewMode } = useChronicle();
   const { deleteLocation } = useChronicleActions();
 
   const cd = chronicleData || { locationDossiers: [] };
@@ -18,8 +19,20 @@ export default memo(function LocationsTab() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ ...S.cardHeader, margin: 0, color: accent }}>Locations ({allLocs.length})</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ ...S.cardHeader, margin: 0, color: accent }}>Locations ({allLocs.length})</div>
+          <div style={{ display: "flex", gap: 2, background: "#1a1a22", borderRadius: 6, padding: 2 }}>
+            {[{ id: "grid", icon: "▤" }, { id: "map", icon: "🗺" }].map(m => (
+              <button key={m.id} onClick={() => setLocViewMode(m.id)}
+                style={{ background: locViewMode === m.id ? `${accent}20` : "transparent",
+                  border: "none", color: locViewMode === m.id ? "#e8dcc6" : "#5a5a65",
+                  padding: "4px 10px", borderRadius: 4, cursor: "pointer", fontSize: 15 }}>
+                {m.icon}
+              </button>
+            ))}
+          </div>
+        </div>
         <button style={S.btnFilled(accent)}
           onClick={() => { setModalData({ name: "", type: "other", description: "", atmosphere: "", controlledBy: "", secrets: "", notes: "", sessions: [] }); setShowModal("editLocation"); }}>
           + Add Location
@@ -27,6 +40,12 @@ export default memo(function LocationsTab() {
       </div>
       {allLocs.length === 0 ? (
         <EmptyState text="No locations mapped. The city is still a mystery." />
+      ) : locViewMode === "map" ? (
+        <LocationMap
+          locations={allLocs}
+          accent={accent}
+          onSelectLocation={(loc) => { setModalData(loc); setShowModal("editLocation"); }}
+        />
       ) : (
         <div style={S.grid2}>
           {allLocs.map(loc => (

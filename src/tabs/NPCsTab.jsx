@@ -40,17 +40,30 @@ export default memo(function NPCsTab() {
     return result;
   }, [allNpcs, searchFilter, npcRelFilter, npcFactionFilter]);
 
-  // Relationship Web rendering
+  const allCharacters = useMemo(() => chronicleData?.characters || [], [chronicleData?.characters]);
+
+  // Enhanced Relationship Web — includes NPCs + Player Characters in center
   const renderWeb = () => {
-    if (allNpcs.length < 2) return <EmptyState text="Need at least 2 NPCs for the relationship web." />;
-    const W = 700, H = 500;
+    const totalNodes = allNpcs.length + allCharacters.length;
+    if (totalNodes < 2) return <EmptyState text="Need at least 2 NPCs or characters for the relationship web." />;
+    const W = 800, H = 560;
     const cx = W / 2, cy = H / 2;
     const relColors = {
       Ally: "#4a8c3f", Enemy: "#c41e3a", Rival: "#c47a1e", Contact: "#4a6a8a",
       Mentor: "#8a4ac4", Lover: "#c44a6a", Patron: "#6a8a4a", Sire: "#8a3a3a",
       Childe: "#3a8a6a", Neutral: "#6a6a6a", Suspicious: "#8a6a2a", Feared: "#6a2a2a",
-      Respected: "#2a6a8a", Unknown: "#5a5a5a",
+      Respected: "#2a6a8a", Unknown: "#5a5a5a", PC: accent,
     };
+
+    // Place PCs near center
+    const pcPositions = {};
+    allCharacters.forEach((ch, i) => {
+      const angle = (i / Math.max(allCharacters.length, 1)) * 2 * Math.PI - Math.PI / 2;
+      const r = allCharacters.length === 1 ? 0 : 50;
+      pcPositions[ch.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+    });
+
+    // Place NPCs in faction groups around PCs
     const factionGroups = {};
     allNpcs.forEach((n, i) => {
       const fk = n.faction || "_none";
@@ -58,28 +71,44 @@ export default memo(function NPCsTab() {
       factionGroups[fk].push({ ...n, _idx: i });
     });
     const factionKeys = Object.keys(factionGroups);
-    const positions = new Array(allNpcs.length);
+    const npcPositions = new Array(allNpcs.length);
     factionKeys.forEach((fk, fi) => {
       const members = factionGroups[fk];
       const factionAngle = (fi / factionKeys.length) * 2 * Math.PI - Math.PI / 2;
-      const baseR = Math.min(W, H) * 0.35;
+      const baseR = Math.min(W, H) * 0.33;
       members.forEach((m, mi) => {
         const spread = members.length > 1 ? (mi - (members.length - 1) / 2) * 0.3 : 0;
         const angle = factionAngle + spread;
         const r = baseR + (mi % 2 === 0 ? 0 : 25);
-        positions[m._idx] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+        npcPositions[m._idx] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
       });
     });
+
     const webLines = [];
+    // Faction lines
     factionKeys.forEach(fk => {
       if (fk === "_none") return;
       const members = factionGroups[fk];
       for (let i = 0; i < members.length; i++) {
         for (let j = i + 1; j < members.length; j++) {
-          webLines.push({ from: members[i]._idx, to: members[j]._idx, color: "#4a4a5830", dashed: true });
+          webLines.push({ fromPos: npcPositions[members[i]._idx], toPos: npcPositions[members[j]._idx], color: "#4a4a5830", dashed: true });
         }
       }
     });
+    // PC-to-NPC relationship lines (Ally/Enemy/Sire get highlighted)
+    const highlightRels = ["Ally", "Enemy", "Rival", "Sire", "Childe", "Mentor", "Lover"];
+    allNpcs.forEach((npc, i) => {
+      if (highlightRels.includes(npc.relationship)) {
+        allCharacters.forEach(ch => {
+          const from = pcPositions[ch.id];
+          const to = npcPositions[i];
+          if (from && to) {
+            webLines.push({ fromPos: from, toPos: to, color: `${relColors[npc.relationship] || "#5a5a5a"}50`, dashed: false });
+          }
+        });
+      }
+    });
+
     const factionColorMap = {};
     const palette = ["#c41e3a", "#4a8c3f", "#4a6a8a", "#c47a1e", "#8a4ac4", "#c44a6a", "#6a8a4a", "#8a6a2a"];
     factionKeys.filter(f => f !== "_none").forEach((f, i) => { factionColorMap[f] = palette[i % palette.length]; });
@@ -87,28 +116,46 @@ export default memo(function NPCsTab() {
     return (
       <div style={{ ...S.card, padding: 16, overflow: "auto" }}>
         <svg width={W} height={H} style={{ display: "block", margin: "0 auto" }}>
+          {/* Faction labels */}
           {factionKeys.filter(f => f !== "_none").map((fk, fi) => {
             const angle = (fi / factionKeys.length) * 2 * Math.PI - Math.PI / 2;
-            const lx = cx + (Math.min(W, H) * 0.48) * Math.cos(angle);
-            const ly = cy + (Math.min(W, H) * 0.48) * Math.sin(angle);
+            const lx = cx + (Math.min(W, H) * 0.46) * Math.cos(angle);
+            const ly = cy + (Math.min(W, H) * 0.46) * Math.sin(angle);
             return (
               <text key={fk} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
                 fill={factionColorMap[fk] || "#6a6a6a"} fontSize={11} fontFamily="'Cinzel', serif"
                 letterSpacing="1" opacity={0.7}>{fk}</text>
             );
           })}
+          {/* Connection lines */}
           {webLines.map((l, i) => {
-            const pFrom = positions[l.from];
-            const pTo = positions[l.to];
-            if (!pFrom || !pTo) return null;
+            if (!l.fromPos || !l.toPos) return null;
             return (
-              <line key={i} x1={pFrom.x} y1={pFrom.y}
-                x2={pTo.x} y2={pTo.y}
-                stroke={l.color} strokeWidth={1} strokeDasharray={l.dashed ? "4,4" : "none"} />
+              <line key={i} x1={l.fromPos.x} y1={l.fromPos.y}
+                x2={l.toPos.x} y2={l.toPos.y}
+                stroke={l.color} strokeWidth={l.dashed ? 1 : 1.5} strokeDasharray={l.dashed ? "4,4" : "none"} />
             );
           })}
+          {/* Player Characters — gold/accent ringed, center */}
+          {allCharacters.map(ch => {
+            const p = pcPositions[ch.id];
+            if (!p) return null;
+            return (
+              <g key={`pc-${ch.id}`} style={{ cursor: "pointer" }}
+                onClick={() => { setModalData(ch); setShowModal("editCharacter"); }}>
+                <circle cx={p.x} cy={p.y} r={26} fill={`${accent}20`} stroke={accent} strokeWidth={3} />
+                <text x={p.x} y={p.y + 1} textAnchor="middle" dominantBaseline="middle"
+                  fill={accent} fontSize={18}>⚜</text>
+                <text x={p.x} y={p.y + 34} textAnchor="middle" fill="#f0e6d4"
+                  fontSize={12} fontWeight="700" fontFamily="'Cinzel', serif" letterSpacing="0.5">{ch.name}</text>
+                <text x={p.x} y={p.y + 46} textAnchor="middle" fill={accent}
+                  fontSize={9} fontFamily="'Cinzel', serif" letterSpacing="0.5">PLAYER</text>
+              </g>
+            );
+          })}
+          {/* NPC nodes */}
           {allNpcs.map((npc, i) => {
-            const p = positions[i] || { x: 0, y: 0 };
+            const p = npcPositions[i] || { x: 0, y: 0 };
             const rc = relColors[npc.relationship] || "#5a5a5a";
             return (
               <g key={npc.id} style={{ cursor: "pointer" }}
@@ -127,7 +174,11 @@ export default memo(function NPCsTab() {
           })}
         </svg>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 8 }}>
-          {Object.entries(relColors).filter(([r]) => relationships.includes(r)).map(([r, c]) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#7a7068" }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", border: `2px solid ${accent}`, background: `${accent}30` }} />
+            Player
+          </div>
+          {Object.entries(relColors).filter(([r]) => r !== "PC" && relationships.includes(r)).map(([r, c]) => (
             <div key={r} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#7a7068" }}>
               <div style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
               {r}
