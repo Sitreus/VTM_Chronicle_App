@@ -97,8 +97,8 @@ export const S = {
     resize: "vertical", lineHeight: 1.6,
   },
   tag: (color = "#c41e3a") => ({
-    display: "inline-block", padding: "5px 16px", borderRadius: 14,
-    fontSize: 28, fontFamily: "'Cinzel', serif", letterSpacing: 1,
+    display: "inline-block", padding: "3px 12px", borderRadius: 12,
+    fontSize: 21, fontFamily: "'Cinzel', serif", letterSpacing: 1,
     background: `${color}20`, border: `1px solid ${color}50`, color: color,
     marginRight: 6, marginBottom: 4, textShadow: "none",
   }),
@@ -138,7 +138,7 @@ export const S = {
   },
   grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
   flexRow: { display: "flex", alignItems: "center", gap: 10 },
-  muted: { color: "#c4b8a6", fontSize: 19 },
+  muted: { color: "#c4b8a6", fontSize: 25 },
   loading: {
     display: "inline-block", width: 16, height: 16,
     border: "2px solid #2a2a35", borderTopColor: "#c41e3a",

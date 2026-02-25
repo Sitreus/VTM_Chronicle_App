@@ -8,7 +8,7 @@ export default function SessionCard({ session, accent, index, onView, onDelete }
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: 22, fontWeight: 600, letterSpacing: 1, color: "#f0e6d4" }}>
             Session {session.number}{session.title ? ` — ${session.title}` : ""}
           </div>
-          <div style={{ ...S.muted, fontSize: 34, marginTop: 2 }}>{session.date}</div>
+          <div style={{ ...S.muted, fontSize: 22, marginTop: 2 }}>{session.date}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {session.mood && <span style={S.tag(accent)}>{session.mood}</span>}
@@ -20,14 +20,14 @@ export default function SessionCard({ session, accent, index, onView, onDelete }
         </div>
       </div>
       {session.summary && (
-        <div style={{ marginTop: 10, fontSize: 40, lineHeight: 1.6, color: "#d4c8ae" }}>
+        <div style={{ marginTop: 10, fontSize: 26, lineHeight: 1.6, color: "#d4c8ae" }}>
           {session.summary}
         </div>
       )}
       {session.storyBeats?.length > 0 && (
         <div style={{ marginTop: 10 }}>
           {session.storyBeats.map((b, i) => (
-            <div key={i} style={{ fontSize: 36, color: "#c4b49e", marginBottom: 4 }}>
+            <div key={i} style={{ fontSize: 23, color: "#c4b49e", marginBottom: 4 }}>
               <span style={{ color: accent, marginRight: 8 }}>▸</span>{b}
             </div>
           ))}

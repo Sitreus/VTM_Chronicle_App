@@ -35,8 +35,8 @@ export default memo(function ThreadsTab() {
               background: c.filled >= c.segments ? "rgba(255,107,107,0.05)" : undefined }}>
               <ProgressClock segments={c.segments} filled={c.filled} accent={accent} size={80}
                 onClick={() => advanceClock(c.id, 1)} />
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 30, letterSpacing: 1, color: "#e8dcc6", marginTop: 8 }}>{c.name}</div>
-              <div style={{ fontSize: 24, color: "#7a7068", textTransform: "uppercase", letterSpacing: 1 }}>{c.type || "threat"}</div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 20, letterSpacing: 1, color: "#e8dcc6", marginTop: 8 }}>{c.name}</div>
+              <div style={{ fontSize: 16, color: "#7a7068", textTransform: "uppercase", letterSpacing: 1 }}>{c.type || "threat"}</div>
               {c.filled >= c.segments && (
                 <div style={{ fontSize: 12, color: "#ff6b6b", fontFamily: "'Cinzel', serif", letterSpacing: 1, marginTop: 4 }}>⚡ COMPLETE</div>
               )}
@@ -66,7 +66,7 @@ export default memo(function ThreadsTab() {
           if (group.length === 0) return null;
           return (
             <div key={status} style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 26, fontFamily: "'Cinzel', serif", letterSpacing: 2, color: statusColor[status], textTransform: "uppercase", marginBottom: 8 }}>
+              <div style={{ fontSize: 17, fontFamily: "'Cinzel', serif", letterSpacing: 2, color: statusColor[status], textTransform: "uppercase", marginBottom: 8 }}>
                 {statusIcon[status]} {status} ({group.length})
               </div>
               {group.map(t => (
@@ -76,16 +76,16 @@ export default memo(function ThreadsTab() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 32 }}>{typeIcon[t.type] || "❓"}</span>
-                        <span style={{ fontFamily: "'Cinzel', serif", fontSize: 36, color: "#e8dcc6", letterSpacing: 1 }}>{t.title}</span>
-                        <span style={{ ...S.tag(statusColor[t.status]), fontSize: 22 }}>{t.type}</span>
+                        <span style={{ fontSize: 21 }}>{typeIcon[t.type] || "❓"}</span>
+                        <span style={{ fontFamily: "'Cinzel', serif", fontSize: 23, color: "#e8dcc6", letterSpacing: 1 }}>{t.title}</span>
+                        <span style={{ ...S.tag(statusColor[t.status]), fontSize: 14 }}>{t.type}</span>
                       </div>
-                      {t.description && <div style={{ fontSize: 34, color: "#b0a490", marginTop: 4 }}>{t.description}</div>}
+                      {t.description && <div style={{ fontSize: 22, color: "#b0a490", marginTop: 4 }}>{t.description}</div>}
                       {t.clues?.length > 0 && (
                         <div style={{ marginTop: 8 }}>
                           {t.clues.map((c, i) => (
-                            <div key={i} style={{ fontSize: 32, color: "#c4b49e", marginBottom: 2 }}>
-                              <span style={{ color: accent, fontSize: 28 }}>S{c.session}</span> {c.text}
+                            <div key={i} style={{ fontSize: 21, color: "#c4b49e", marginBottom: 2 }}>
+                              <span style={{ color: accent, fontSize: 18 }}>S{c.session}</span> {c.text}
                             </div>
                           ))}
                         </div>
@@ -102,7 +102,7 @@ export default memo(function ThreadsTab() {
                     </div>
                   </div>
                   {t.session && (
-                    <div style={{ fontSize: 24, color: "#5a5a65", marginTop: 6, fontFamily: "'Cinzel', serif", letterSpacing: 1 }}>
+                    <div style={{ fontSize: 16, color: "#5a5a65", marginTop: 6, fontFamily: "'Cinzel', serif", letterSpacing: 1 }}>
                       Introduced: Session {t.session}
                     </div>
                   )}
