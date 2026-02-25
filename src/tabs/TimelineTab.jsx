@@ -33,12 +33,12 @@ export default memo(function TimelineTab() {
                 position: "absolute", left: -33, top: 4, width: 16, height: 16, borderRadius: "50%",
                 background: `${accent}30`, border: `2px solid ${accent}`, boxSizing: "border-box",
               }} />
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 23, letterSpacing: 2, color: accent, marginBottom: 8 }}>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: 21, letterSpacing: 2, color: accent, marginBottom: 8 }}>
                 Session {key}
                 {grouped[key][0]?.date && <span style={{ color: "#7a7068", marginLeft: 10 }}>{grouped[key][0].date}</span>}
               </div>
               {grouped[key].map(beat => (
-                <div key={beat.id} style={{ fontSize: 25, lineHeight: 1.6, color: "#d4c8ae", marginBottom: 4 }}>
+                <div key={beat.id} style={{ fontSize: 22, lineHeight: 1.6, color: "#d4c8ae", marginBottom: 4 }}>
                   <span style={{ color: "#a09888", marginRight: 8 }}>▸</span>{beat.text}
                 </div>
               ))}

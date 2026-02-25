@@ -61,7 +61,7 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
         )}
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: 26, fontWeight: 700, letterSpacing: 1, color: "#f0e6d4" }}>{ch.name}</div>
-          {ch.concept && <div style={{ color: accent, fontSize: 25, marginTop: 2 }}>{ch.concept}</div>}
+          {ch.concept && <div style={{ color: accent, fontSize: 22, marginTop: 2 }}>{ch.concept}</div>}
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
             {ch.clan && <span style={S.tag(accent)}>{ch.clan}</span>}
             {ch.nature && <span style={S.tag("#7a7068")}>Nature: {ch.nature}</span>}
@@ -73,7 +73,7 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
       {/* Backstory — collapsible */}
       {ch.backstory && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 25, lineHeight: 1.7, color: "#d4c8ae", whiteSpace: "pre-wrap" }}>
+          <div style={{ fontSize: 22, lineHeight: 1.7, color: "#d4c8ae", whiteSpace: "pre-wrap" }}>
             {expanded || !hasLongBackstory
               ? ch.backstory
               : ch.backstory.slice(0, BACKSTORY_TRUNCATE) + "..."}
@@ -81,7 +81,7 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
           {hasLongBackstory && (
             <button onClick={toggleExpand} style={{
               background: "none", border: "none", color: accent, cursor: "pointer",
-              fontFamily: "'Cinzel', serif", fontSize: 18, letterSpacing: 1,
+              fontFamily: "'Cinzel', serif", fontSize: 16, letterSpacing: 1,
               padding: "4px 0", marginTop: 4, textTransform: "uppercase",
             }}>
               {expanded ? "Show less" : "Show more"}
@@ -92,7 +92,7 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
 
       {/* Plain notes (non-stat lines) */}
       {plainLines.length > 0 && (
-        <div style={{ marginTop: 8, fontSize: 23, fontStyle: "italic", color: "#b0a490", whiteSpace: "pre-wrap" }}>
+        <div style={{ marginTop: 8, fontSize: 21, fontStyle: "italic", color: "#b0a490", whiteSpace: "pre-wrap" }}>
           {plainLines.join("\n")}
         </div>
       )}
@@ -107,7 +107,7 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
             return (
               <div key={i} style={{ marginBottom: 10 }}>
                 <div style={{
-                  fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 700,
+                  fontFamily: "'Cinzel', serif", fontSize: 16, fontWeight: 700,
                   letterSpacing: 1.5, color: accent, textTransform: "uppercase", marginBottom: 3,
                 }}>
                   {label}
@@ -115,14 +115,14 @@ function CharacterCard({ ch, accent, onEdit, onDelete }) {
                 {isList ? (
                   <ul style={{ margin: 0, paddingLeft: 20, listStyleType: "none" }}>
                     {items.map((item, j) => (
-                      <li key={j} style={{ fontSize: 22, lineHeight: 1.6, color: "#c4b899" }}>
+                      <li key={j} style={{ fontSize: 20, lineHeight: 1.6, color: "#c4b899" }}>
                         <span style={{ color: `${accent}80`, marginRight: 6 }}>&#x25B8;</span>
                         {item}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <div style={{ fontSize: 22, lineHeight: 1.6, color: "#c4b899", paddingLeft: 4 }}>
+                  <div style={{ fontSize: 20, lineHeight: 1.6, color: "#c4b899", paddingLeft: 4 }}>
                     {value}
                   </div>
                 )}
