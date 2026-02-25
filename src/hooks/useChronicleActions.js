@@ -885,6 +885,12 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     await saveWithUndo({ ...chronicleData, sessions }, "Edit session notes");
   }, [chronicleData, saveWithUndo]);
 
+  // ─── Map Data (background image + pin positions) ─────
+  const saveMapData = useCallback(async (mapData) => {
+    if (!chronicleData) return;
+    await saveChronicleData({ ...chronicleData, mapData });
+  }, [chronicleData, saveChronicleData]);
+
   return {
     createChronicle, deleteChronicle, deleteSession,
     addSession, saveNPC, deleteNPC,
@@ -900,6 +906,7 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
     exportChronicleJSON, importChronicleJSON,
     addRumor, removeRumor, updateRumor,
     updateCharacterStats, updateSessionNotes,
+    saveMapData,
     performUndo, performRedo,
   };
 }

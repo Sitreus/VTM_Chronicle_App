@@ -12,7 +12,7 @@ const typeIcons = {
 
 export default memo(function LocationsTab() {
   const { chronicleData, accent, setModalData, setShowModal, locViewMode, setLocViewMode } = useChronicle();
-  const { deleteLocation } = useChronicleActions();
+  const { deleteLocation, saveMapData } = useChronicleActions();
 
   const cd = chronicleData || { locationDossiers: [] };
   const allLocs = cd.locationDossiers || [];
@@ -45,6 +45,8 @@ export default memo(function LocationsTab() {
           locations={allLocs}
           accent={accent}
           onSelectLocation={(loc) => { setModalData(loc); setShowModal("editLocation"); }}
+          mapData={cd.mapData || null}
+          onMapDataChange={saveMapData}
         />
       ) : (
         <div style={S.grid2}>
