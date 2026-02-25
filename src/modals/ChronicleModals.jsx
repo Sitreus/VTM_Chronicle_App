@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { GAME_TYPES, RELATIONSHIP_TYPES, THREAD_STATUSES, ATTITUDE_LEVELS, INFLUENCE_LEVELS } from "../constants.js";
 import { S } from "../styles.js";
 import { callClaude, diagnoseConnection } from "../utils/claude.js";
@@ -7,6 +8,7 @@ import { useChronicle } from "../context/ChronicleContext.jsx";
 import useChronicleActions from "../hooks/useChronicleActions.js";
 import Modal from "../components/Modal.jsx";
 import ProgressClock from "../components/ProgressClock.jsx";
+import PrintView from "../components/PrintView.jsx";
 
 export default function ChronicleModals() {
   const ctx = useChronicle();
@@ -158,26 +160,79 @@ export default function ChronicleModals() {
     );
   }
 
-  if (showModal === "viewLog") return (
-    <Modal onClose={() => { setShowModal(null); setModalData({}); }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ ...S.cardHeader, color: accent }}>
-            Session {modalData.number}{modalData.title ? ` — ${modalData.title}` : ""}
+  if (showModal === "viewLog") {
+    const isEditing = modalData._editing;
+    return (
+      <Modal onClose={() => { setShowModal(null); setModalData({}); }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ ...S.cardHeader, color: accent }}>
+              Session {modalData.number}{modalData.title ? ` — ${modalData.title}` : ""}
+            </div>
+            <div style={{ ...S.muted, marginBottom: 12 }}>{modalData.date}</div>
           </div>
-          <div style={{ ...S.muted, marginBottom: 12 }}>{modalData.date}</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button style={S.btn(accent)}
+              onClick={() => {
+                if (isEditing) {
+                  // Save edits
+                  actions.updateSessionNotes(modalData.id, {
+                    title: modalData.title,
+                    summary: modalData.summary,
+                  });
+                  setModalData(d => ({ ...d, _editing: false }));
+                } else {
+                  setModalData(d => ({ ...d, _editing: true }));
+                }
+              }}>
+              {isEditing ? "💾 Save" : "✎ Edit"}
+            </button>
+            <button style={S.btn("#6a3333")} onClick={() => actions.deleteSession(modalData.id)}>Delete</button>
+          </div>
         </div>
-        <button style={S.btn("#6a3333")} onClick={() => actions.deleteSession(modalData.id)}>Delete Session</button>
-      </div>
-      {modalData.summary && (
-        <div style={{ ...S.card, background: `${accent}08`, border: `1px solid ${accent}20` }}>
-          <div style={{ fontSize: 15, fontFamily: "'Cinzel', serif", letterSpacing: 2, color: accent, marginBottom: 6, textTransform: "uppercase" }}>Summary</div>
-          <div style={{ fontSize: 18, lineHeight: 1.6, color: "#c4b599" }}>{modalData.summary}</div>
+        {isEditing ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <input style={S.input} placeholder="Session Title" value={modalData.title || ""}
+              onChange={e => setModalData(d => ({ ...d, title: e.target.value }))} />
+            <textarea style={{ ...S.textarea, minHeight: 80 }} placeholder="Summary"
+              value={modalData.summary || ""}
+              onChange={e => setModalData(d => ({ ...d, summary: e.target.value }))} />
+          </div>
+        ) : (
+          <>
+            {modalData.summary && (
+              <div style={{ ...S.card, background: `${accent}08`, border: `1px solid ${accent}20` }}>
+                <div style={{ fontSize: 15, fontFamily: "'Cinzel', serif", letterSpacing: 2, color: accent, marginBottom: 6, textTransform: "uppercase" }}>Summary</div>
+                <div style={{ fontSize: 18, lineHeight: 1.6, color: "#c4b599" }}>{modalData.summary}</div>
+              </div>
+            )}
+          </>
+        )}
+        {modalData.storyBeats?.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 14, fontFamily: "'Cinzel', serif", letterSpacing: 1, color: accent, marginBottom: 4 }}>STORY BEATS</div>
+            {modalData.storyBeats.map((b, i) => (
+              <div key={i} style={{ fontSize: 16, color: "#c4b49e", marginBottom: 3 }}>
+                <span style={{ color: accent, marginRight: 6 }}>▸</span>{b}
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ marginTop: 8, fontSize: 18, lineHeight: 1.7, color: "#ddd0b8", whiteSpace: "pre-wrap", maxHeight: 400, overflowY: "auto" }}>
+          {stripMarkdown(modalData.logText)}
         </div>
-      )}
-      <div style={{ fontSize: 18, lineHeight: 1.7, color: "#ddd0b8", whiteSpace: "pre-wrap", maxHeight: 400, overflowY: "auto" }}>
-        {stripMarkdown(modalData.logText)}
-      </div>
+      </Modal>
+    );
+  }
+
+  if (showModal === "printView") return (
+    <Modal onClose={() => { setShowModal(null); setModalData({}); }}>
+      <PrintView
+        chronicle={activeChronicle}
+        chronicleData={chronicleData}
+        accent={accent}
+        onClose={() => { setShowModal(null); setModalData({}); }}
+      />
     </Modal>
   );
 

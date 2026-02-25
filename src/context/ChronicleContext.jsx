@@ -3,6 +3,7 @@ import { GAME_TYPES, CARD_AUDIO_FILES } from "../constants.js";
 import { GAME_BACKGROUNDS, DEFAULT_BG } from "../splashImages.js";
 import { storageGet, storageSet } from "../utils/storage.js";
 import useAudio from "../audio/useAudio.js";
+import useUndoHistory from "../hooks/useUndoHistory.js";
 
 const ChronicleContext = createContext(null);
 
@@ -30,6 +31,12 @@ export function ChronicleProvider({ children }) {
   const [modalEntrance, setModalEntrance] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [proxyUrl, setProxyUrl] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [locViewMode, setLocViewMode] = useState("grid");
+  const [sessionViewMode, setSessionViewMode] = useState("list");
+  const [charViewMode, setCharViewMode] = useState("cards");
+
+  const undoHistory = useUndoHistory();
 
   const fileInputRef = useRef(null);
   const sessionFileRef = useRef(null);
@@ -183,6 +190,13 @@ export function ChronicleProvider({ children }) {
     modalEntrance, setModalEntrance,
     apiKey, setApiKey,
     proxyUrl, setProxyUrl,
+    showSearch, setShowSearch,
+    locViewMode, setLocViewMode,
+    sessionViewMode, setSessionViewMode,
+    charViewMode, setCharViewMode,
+
+    // Undo
+    undoHistory,
 
     // Refs
     fileInputRef, sessionFileRef, characterFileRef,

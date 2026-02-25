@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { FONTS_URL, GAME_TYPES, TABS, CARD_AUDIO_FILES } from "./constants.js";
 import { S } from "./styles.js";
 import { ChronicleProvider, useChronicle } from "./context/ChronicleContext.jsx";
+import useChronicleActions from "./hooks/useChronicleActions.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import AudioControl from "./components/AudioControl.jsx";
 import DynamicBackground from "./components/DynamicBackground.jsx";
+import SearchOverlay from "./components/SearchOverlay.jsx";
 import DashboardTab from "./tabs/DashboardTab.jsx";
 import SessionsTab from "./tabs/SessionsTab.jsx";
 import NPCsTab from "./tabs/NPCsTab.jsx";
@@ -25,7 +28,29 @@ function WorldOfDarknessInner() {
     confirmAction, setConfirmAction,
     saveBeforeSwitch, setActiveChronicleId,
     handleSplashSelect, audio,
+    showSearch, setShowSearch, chronicleData, undoHistory,
   } = useChronicle();
+  const { performUndo, performRedo } = useChronicleActions();
+
+  // Keyboard shortcuts: Ctrl+K search, Ctrl+Z undo, Ctrl+Y redo
+  useEffect(() => {
+    const handleKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearch(s => !s);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        performUndo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        performRedo();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [setShowSearch, performUndo, performRedo]);
 
   if (loading) return (
     <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -58,6 +83,8 @@ function WorldOfDarknessInner() {
       <style>{`
         @import url('${FONTS_URL}');
         @keyframes wod-spin { to { transform: rotate(360deg); } }
+        @keyframes wod-fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes wod-slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a12; }
@@ -65,6 +92,9 @@ function WorldOfDarknessInner() {
         ::selection { background: ${accent}40; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: ${accent}60; }
         button:hover { opacity: 0.85; }
+        .wod-tab-content { animation: wod-fadeIn 0.3s ease-out; }
+        .wod-card-enter { animation: wod-fadeIn 0.35s ease-out; }
+        .wod-slide-enter { animation: wod-slideIn 0.3s ease-out; }
       `}</style>
       {!showSplash && <DynamicBackground gameTypeId={currentGameTypeId} bgImage={bgImage} />}
       {!showSplash && !bgImage && <div style={S.noiseOverlay} />}
@@ -88,6 +118,20 @@ function WorldOfDarknessInner() {
               onClick={() => { saveBeforeSwitch(); setShowSplash(true); setSplashPhase("select"); }}>
               ◈ Selection Menu
             </button>
+            {activeChronicle && (
+              <button style={{ ...S.bgBtn(false), letterSpacing: 1.5, fontFamily: "'Cinzel', serif", fontSize: 11, color: "#c4b49e" }}
+                onClick={() => setShowSearch(true)} title="Search (Ctrl+K)">
+                🔍 Search
+              </button>
+            )}
+            {undoHistory.canUndo && (
+              <button style={{ ...S.bgBtn(false), padding: "6px 10px", fontSize: 13, color: "#c4b49e" }}
+                onClick={performUndo} title="Undo (Ctrl+Z)">↩</button>
+            )}
+            {undoHistory.canRedo && (
+              <button style={{ ...S.bgBtn(false), padding: "6px 10px", fontSize: 13, color: "#c4b49e" }}
+                onClick={performRedo} title="Redo (Ctrl+Y)">↪</button>
+            )}
             <AudioControl audio={audio} />
           </div>
         </div>
@@ -140,16 +184,36 @@ function WorldOfDarknessInner() {
           </div>
         )}
 
-        {/* Content — each tab is now its own component */}
-        {activeTab === "dashboard" && <DashboardTab />}
-        {activeTab === "sessions" && <SessionsTab />}
-        {activeTab === "npcs" && <NPCsTab />}
-        {activeTab === "characters" && <CharactersTab />}
-        {activeTab === "factions" && <FactionsTab />}
-        {activeTab === "locations" && <LocationsTab />}
-        {activeTab === "threads" && <ThreadsTab />}
-        {activeTab === "timeline" && <TimelineTab />}
+        {/* Content — each tab is now its own component with transition */}
+        <div key={activeTab} className="wod-tab-content">
+          {activeTab === "dashboard" && <DashboardTab />}
+          {activeTab === "sessions" && <SessionsTab />}
+          {activeTab === "npcs" && <NPCsTab />}
+          {activeTab === "characters" && <CharactersTab />}
+          {activeTab === "factions" && <FactionsTab />}
+          {activeTab === "locations" && <LocationsTab />}
+          {activeTab === "threads" && <ThreadsTab />}
+          {activeTab === "timeline" && <TimelineTab />}
+        </div>
       </div>
+
+      {/* Search Overlay */}
+      {showSearch && (
+        <SearchOverlay
+          chronicleData={chronicleData}
+          accent={accent}
+          onClose={() => setShowSearch(false)}
+          onNavigate={(tab, data, type) => {
+            setActiveTab(tab);
+            if (type === "npc") { setModalData(data); setShowModal("editNPC"); }
+            else if (type === "character") { setModalData(data); setShowModal("editCharacter"); }
+            else if (type === "faction") { setModalData(data); setShowModal("editFaction"); }
+            else if (type === "location") { setModalData(data); setShowModal("editLocation"); }
+            else if (type === "thread") { setModalData(data); setShowModal("editThread"); }
+            else if (type === "session") { setModalData(data); setShowModal("viewLog"); }
+          }}
+        />
+      )}
 
       {/* Modals */}
       <ChronicleModals />
