@@ -36,22 +36,22 @@ export default memo(function LocationsTab() {
                 {typeIcons[loc.type] || "📍"} {loc.name}
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                <span style={{ ...S.tag(accent), fontSize: 11 }}>{loc.type}</span>
-                {loc.controlledBy && <span style={{ ...S.tag("#4a6a8a"), fontSize: 11 }}>{loc.controlledBy}</span>}
+                <span style={{ ...S.tag(accent), fontSize: 14 }}>{loc.type}</span>
+                {loc.controlledBy && <span style={{ ...S.tag("#4a6a8a"), fontSize: 14 }}>{loc.controlledBy}</span>}
               </div>
-              {loc.description && <div style={{ marginTop: 8, fontSize: 18, color: "#d4c8ae", lineHeight: 1.5 }}>{loc.description}</div>}
+              {loc.description && <div style={{ marginTop: 8, fontSize: 23, color: "#d4c8ae", lineHeight: 1.5 }}>{loc.description}</div>}
               {loc.atmosphere && (
-                <div style={{ marginTop: 6, fontSize: 16, fontStyle: "italic", color: "#a89d8d" }}>
+                <div style={{ marginTop: 6, fontSize: 21, fontStyle: "italic", color: "#a89d8d" }}>
                   ✦ {loc.atmosphere}
                 </div>
               )}
               {loc.secrets && (
-                <div style={{ marginTop: 6, fontSize: 16, color: "#d4962e" }}>
+                <div style={{ marginTop: 6, fontSize: 21, color: "#d4962e" }}>
                   🔒 {loc.secrets}
                 </div>
               )}
               {loc.sessions?.length > 0 && (
-                <div style={{ marginTop: 8, fontSize: 12, color: "#5a5a65", fontFamily: "'Cinzel', serif", letterSpacing: 1 }}>
+                <div style={{ marginTop: 8, fontSize: 16, color: "#5a5a65", fontFamily: "'Cinzel', serif", letterSpacing: 1 }}>
                   Visited: Session{loc.sessions.length > 1 ? "s" : ""} {loc.sessions.join(", ")}
                 </div>
               )}

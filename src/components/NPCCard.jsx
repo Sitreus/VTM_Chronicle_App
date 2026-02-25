@@ -2,8 +2,8 @@ import { S } from "../styles.js";
 
 export default function NPCCard({ npc, accent, onEdit, onDelete }) {
   const profileField = (icon, label, value) => value ? (
-    <div style={{ marginTop: 8, fontSize: 18, lineHeight: 1.5, color: "#b0a490" }}>
-      <span style={{ color: accent, fontSize: 14, fontFamily: "'Cinzel', serif", letterSpacing: 1, textTransform: "uppercase" }}>
+    <div style={{ marginTop: 8, fontSize: 23, lineHeight: 1.5, color: "#b0a490" }}>
+      <span style={{ color: accent, fontSize: 18, fontFamily: "'Cinzel', serif", letterSpacing: 1, textTransform: "uppercase" }}>
         {icon} {label}
       </span>
       <div style={{ color: "#d4c8ae", marginTop: 2 }}>{value}</div>
@@ -22,14 +22,14 @@ export default function NPCCard({ npc, accent, onEdit, onDelete }) {
           <div style={{ fontFamily: "'Cinzel', serif", fontSize: 22, fontWeight: 600, letterSpacing: 1, color: "#f0e6d4" }}>
             {npc.name}
           </div>
-          {npc.faction && <div style={{ ...S.muted, fontSize: 17, marginTop: 2 }}>{npc.faction}</div>}
+          {npc.faction && <div style={{ ...S.muted, fontSize: 22, marginTop: 2 }}>{npc.faction}</div>}
           <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
             <span style={S.tag(accent)}>{npc.relationship || "Unknown"}</span>
           </div>
         </div>
       </div>
       {npc.description && (
-        <div style={{ marginTop: 10, fontSize: 19, lineHeight: 1.5, color: "#d4c8ae" }}>
+        <div style={{ marginTop: 10, fontSize: 25, lineHeight: 1.5, color: "#d4c8ae" }}>
           {npc.description}
         </div>
       )}
@@ -38,12 +38,12 @@ export default function NPCCard({ npc, accent, onEdit, onDelete }) {
       {profileField("\uD83D\uDD6F", "Backstory", npc.backstory)}
       {profileField("\u269C", "Motivations", npc.motivations)}
       {npc.notes && (
-        <div style={{ marginTop: 8, fontSize: 17, fontStyle: "italic", color: "#a09888" }}>
+        <div style={{ marginTop: 8, fontSize: 22, fontStyle: "italic", color: "#a09888" }}>
           ✦ {npc.notes}
         </div>
       )}
       {npc.lastSeen && (
-        <div style={{ marginTop: 10, fontSize: 15, color: "#9a9aa5", fontFamily: "'Cinzel', serif", letterSpacing: 1 }}>
+        <div style={{ marginTop: 10, fontSize: 20, color: "#9a9aa5", fontFamily: "'Cinzel', serif", letterSpacing: 1 }}>
           Sessions {npc.firstSeen || "?"} — {npc.lastSeen}
         </div>
       )}

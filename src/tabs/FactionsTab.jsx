@@ -27,7 +27,7 @@ export default memo(function FactionsTab() {
             background: i <= idx ? `${accent}${i <= idx ? "cc" : "20"}` : "#2a2a35",
           }} />
         ))}
-        <span style={{ fontSize: 13, color: "#a09888", marginLeft: 4 }}>{level}</span>
+        <span style={{ fontSize: 17, color: "#a09888", marginLeft: 4 }}>{level}</span>
       </div>
     );
   };
@@ -53,20 +53,20 @@ export default memo(function FactionsTab() {
                   <div style={{ fontFamily: "'Cinzel', serif", fontSize: 20, fontWeight: 600, letterSpacing: 1, color: "#e8dcc6" }}>
                     🏛 {f.name}
                   </div>
-                  {f.territory && <div style={{ fontSize: 16, color: "#a09888", marginTop: 2 }}>📍 {f.territory}</div>}
+                  {f.territory && <div style={{ fontSize: 21, color: "#a09888", marginTop: 2 }}>📍 {f.territory}</div>}
                 </div>
-                <span style={{ ...S.tag(attitudeColor[f.attitude] || "#6a6a6a"), fontSize: 12 }}>{f.attitude}</span>
+                <span style={{ ...S.tag(attitudeColor[f.attitude] || "#6a6a6a"), fontSize: 16 }}>{f.attitude}</span>
               </div>
-              {f.description && <div style={{ marginTop: 8, fontSize: 18, color: "#d4c8ae", lineHeight: 1.5 }}>{f.description}</div>}
+              {f.description && <div style={{ marginTop: 8, fontSize: 23, color: "#d4c8ae", lineHeight: 1.5 }}>{f.description}</div>}
               <div style={{ marginTop: 8 }}>{influenceBar(f.influence || "None")}</div>
               {f.goals && (
-                <div style={{ marginTop: 8, fontSize: 16, color: "#b0a490" }}>
-                  <span style={{ color: accent, fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: 1 }}>GOALS </span>
+                <div style={{ marginTop: 8, fontSize: 21, color: "#b0a490" }}>
+                  <span style={{ color: accent, fontFamily: "'Cinzel', serif", fontSize: 17, letterSpacing: 1 }}>GOALS </span>
                   {f.goals}
                 </div>
               )}
               {f.members?.length > 0 && (
-                <div style={{ marginTop: 8, fontSize: 15, color: "#a09888" }}>
+                <div style={{ marginTop: 8, fontSize: 20, color: "#a09888" }}>
                   Members: {f.members.join(", ")}
                 </div>
               )}
