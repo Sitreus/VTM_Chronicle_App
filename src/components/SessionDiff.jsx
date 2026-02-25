@@ -8,8 +8,12 @@ export default function SessionDiff({ sessions, accent }) {
 
   if (sorted.length < 2) return null;
 
-  const fromSession = sorted[fromIdx];
-  const toSession = sorted[toIdx];
+  // Clamp indices to valid range if sessions were added/removed
+  const safeFromIdx = Math.max(0, Math.min(fromIdx, sorted.length - 1));
+  const safeToIdx = Math.max(0, Math.min(toIdx, sorted.length - 1));
+
+  const fromSession = sorted[safeFromIdx];
+  const toSession = sorted[safeToIdx];
 
   // Compare what changed between sessions
   const fromBeats = new Set(fromSession?.storyBeats || []);

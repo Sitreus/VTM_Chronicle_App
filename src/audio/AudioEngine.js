@@ -379,7 +379,8 @@ export default class AudioEngine {
    * Stop all active sources.
    */
   stopAll(fadeOut = 0.1) {
-    for (const [id] of this._activeSources) {
+    const ids = [...this._activeSources.keys()];
+    for (const id of ids) {
       this.stop(id, fadeOut);
     }
   }

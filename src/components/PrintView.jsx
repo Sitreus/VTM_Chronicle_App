@@ -1,6 +1,16 @@
 import { S } from "../styles.js";
 import { GAME_TYPES } from "../constants.js";
 
+function esc(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export default function PrintView({ chronicle, chronicleData, accent, onClose }) {
   const cd = chronicleData || {};
   const gameType = GAME_TYPES.find(g => g.id === chronicle?.gameType);
@@ -63,22 +73,22 @@ export default function PrintView({ chronicle, chronicleData, accent, onClose })
     .muted, .description { color: #6a6058; }
   }
 </style></head><body>
-<h1>${gameType?.icon || "◈"} ${chronicle?.name || "Chronicle"}</h1>
-<div class="subtitle">${gameType?.label || "World of Darkness"}</div>
-${chronicle?.description ? `<div class="description">${chronicle.description}</div>` : ""}
+<h1>${esc(gameType?.icon) || "◈"} ${esc(chronicle?.name) || "Chronicle"}</h1>
+<div class="subtitle">${esc(gameType?.label) || "World of Darkness"}</div>
+${chronicle?.description ? `<div class="description">${esc(chronicle.description)}</div>` : ""}
 
 ${characters.length > 0 ? `
 <h2>⚜ Player Characters</h2>
 ${characters.map(c => `
 <div class="card">
-  <h3>${c.name}</h3>
-  ${c.concept ? `<div style="color:${accent};margin-bottom:4px">${c.concept}</div>` : ""}
+  <h3>${esc(c.name)}</h3>
+  ${c.concept ? `<div style="color:${accent};margin-bottom:4px">${esc(c.concept)}</div>` : ""}
   <div style="margin-bottom:6px">
-    ${c.clan ? `<span class="tag">${c.clan}</span>` : ""}
-    ${c.nature ? `<span class="tag">Nature: ${c.nature}</span>` : ""}
-    ${c.demeanor ? `<span class="tag">Demeanor: ${c.demeanor}</span>` : ""}
+    ${c.clan ? `<span class="tag">${esc(c.clan)}</span>` : ""}
+    ${c.nature ? `<span class="tag">Nature: ${esc(c.nature)}</span>` : ""}
+    ${c.demeanor ? `<span class="tag">Demeanor: ${esc(c.demeanor)}</span>` : ""}
   </div>
-  ${c.backstory ? `<div>${c.backstory}</div>` : ""}
+  ${c.backstory ? `<div>${esc(c.backstory)}</div>` : ""}
 </div>`).join("")}` : ""}
 
 ${npcs.length > 0 ? `
@@ -86,10 +96,10 @@ ${npcs.length > 0 ? `
 <div class="grid">
 ${npcs.map(n => `
 <div class="card">
-  <h3>${n.name}</h3>
-  <div><span class="tag">${n.relationship || "Unknown"}</span>${n.faction ? `<span class="muted"> ${n.faction}</span>` : ""}</div>
-  ${n.description ? `<div style="margin-top:6px">${n.description}</div>` : ""}
-  ${n.personality ? `<div class="muted" style="margin-top:4px">Personality: ${n.personality}</div>` : ""}
+  <h3>${esc(n.name)}</h3>
+  <div><span class="tag">${esc(n.relationship) || "Unknown"}</span>${n.faction ? `<span class="muted"> ${esc(n.faction)}</span>` : ""}</div>
+  ${n.description ? `<div style="margin-top:6px">${esc(n.description)}</div>` : ""}
+  ${n.personality ? `<div class="muted" style="margin-top:4px">Personality: ${esc(n.personality)}</div>` : ""}
 </div>`).join("")}
 </div>` : ""}
 
@@ -98,10 +108,10 @@ ${factions.length > 0 ? `
 <div class="grid">
 ${factions.map(f => `
 <div class="card">
-  <h3>${f.name}</h3>
-  <div><span class="tag">${f.attitude || "Neutral"}</span> <span class="muted">${f.influence || ""}</span></div>
-  ${f.description ? `<div style="margin-top:6px">${f.description}</div>` : ""}
-  ${f.goals ? `<div class="muted" style="margin-top:4px">Goals: ${f.goals}</div>` : ""}
+  <h3>${esc(f.name)}</h3>
+  <div><span class="tag">${esc(f.attitude) || "Neutral"}</span> <span class="muted">${esc(f.influence)}</span></div>
+  ${f.description ? `<div style="margin-top:6px">${esc(f.description)}</div>` : ""}
+  ${f.goals ? `<div class="muted" style="margin-top:4px">Goals: ${esc(f.goals)}</div>` : ""}
 </div>`).join("")}
 </div>` : ""}
 
@@ -110,10 +120,10 @@ ${locations.length > 0 ? `
 <div class="grid">
 ${locations.map(l => `
 <div class="card">
-  <h3>${l.name}</h3>
-  <div><span class="tag">${l.type || "other"}</span>${l.controlledBy ? `<span class="muted"> ${l.controlledBy}</span>` : ""}</div>
-  ${l.description ? `<div style="margin-top:6px">${l.description}</div>` : ""}
-  ${l.atmosphere ? `<div class="muted" style="font-style:italic;margin-top:4px">✦ ${l.atmosphere}</div>` : ""}
+  <h3>${esc(l.name)}</h3>
+  <div><span class="tag">${esc(l.type) || "other"}</span>${l.controlledBy ? `<span class="muted"> ${esc(l.controlledBy)}</span>` : ""}</div>
+  ${l.description ? `<div style="margin-top:6px">${esc(l.description)}</div>` : ""}
+  ${l.atmosphere ? `<div class="muted" style="font-style:italic;margin-top:4px">✦ ${esc(l.atmosphere)}</div>` : ""}
 </div>`).join("")}
 </div>` : ""}
 
@@ -121,24 +131,24 @@ ${threads.length > 0 ? `
 <h2>🕸 Plot Threads</h2>
 ${threads.map(t => `
 <div class="card" style="border-left:3px solid ${t.status === "active" ? "#c41e3a" : t.status === "cold" ? "#4a6a8a" : "#3a6a3a"}">
-  <h3>${t.title} <span class="tag">${t.status}</span> <span class="tag">${t.type || "mystery"}</span></h3>
-  ${t.description ? `<div>${t.description}</div>` : ""}
-  ${(t.clues || []).map(c => `<div class="muted">S${c.session}: ${c.text}</div>`).join("")}
+  <h3>${esc(t.title)} <span class="tag">${esc(t.status)}</span> <span class="tag">${esc(t.type) || "mystery"}</span></h3>
+  ${t.description ? `<div>${esc(t.description)}</div>` : ""}
+  ${(t.clues || []).map(c => `<div class="muted">S${esc(String(c.session))}: ${esc(c.text)}</div>`).join("")}
 </div>`).join("")}` : ""}
 
 ${sessions.length > 0 ? `
 <h2>📜 Session Logs</h2>
 ${sessions.map(s => `
 <div class="card">
-  <h3>Session ${s.number}${s.title ? ` — ${s.title}` : ""}</h3>
-  <div class="muted">${s.date || ""} ${s.mood ? `| ${s.mood}` : ""}</div>
-  ${s.summary ? `<div style="margin-top:8px;font-style:italic">${s.summary}</div>` : ""}
-  ${(s.storyBeats || []).map(b => `<div style="margin-top:4px">▸ ${b}</div>`).join("")}
+  <h3>Session ${esc(String(s.number))}${s.title ? ` — ${esc(s.title)}` : ""}</h3>
+  <div class="muted">${esc(s.date)} ${s.mood ? `| ${esc(s.mood)}` : ""}</div>
+  ${s.summary ? `<div style="margin-top:8px;font-style:italic">${esc(s.summary)}</div>` : ""}
+  ${(s.storyBeats || []).map(b => `<div style="margin-top:4px">▸ ${esc(b)}</div>`).join("")}
 </div>`).join("")}` : ""}
 
 ${beats.length > 0 ? `
 <h2>📅 Timeline</h2>
-${beats.map(b => `<div style="margin-bottom:4px"><span class="stat-label">Session ${b.session}</span> ${b.text}</div>`).join("")}` : ""}
+${beats.map(b => `<div style="margin-bottom:4px"><span class="stat-label">Session ${esc(String(b.session))}</span> ${esc(b.text)}</div>`).join("")}` : ""}
 
 <div class="divider"></div>
 <div style="text-align:center;color:#5a5a65;font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px">

@@ -2,6 +2,7 @@ export default function ProgressClock({ segments, filled, size = 60, accent = "#
   const r = size / 2 - 2;
   const cx = size / 2;
   const cy = size / 2;
+  if (!segments || segments < 1) segments = 1;
   const angleStep = (2 * Math.PI) / segments;
 
   return (

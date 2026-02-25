@@ -49,12 +49,18 @@ export default function useAudio() {
     // Already fully running — nothing to do
     if (manager.isReady) return manager;
 
-    // Initialize engine + load manifest (first call only)
+    // Initialize engine + load manifest (first call only).
+    // Use .then(onFulfilled, onRejected) to handle errors without swallowing.
+    // On failure, clear the cached promise so future calls can retry.
     if (!initPromiseRef.current) {
-      initPromiseRef.current = manager.init().catch(err => {
-        console.warn('[useAudio] Init failed:', err);
-        initPromiseRef.current = null;
-      });
+      initPromiseRef.current = manager.init().then(
+        () => true,
+        (err) => {
+          console.warn('[useAudio] Init failed:', err);
+          initPromiseRef.current = null;
+          return false;
+        }
+      );
     }
 
     // Resume the AudioContext BEFORE awaiting the full init (manifest loading).
@@ -67,14 +73,15 @@ export default function useAudio() {
     await manager.resume();
 
     // Now wait for the full init (including manifest loading) to complete
-    await initPromiseRef.current;
+    const initOk = await initPromiseRef.current;
 
     // Update reactive state so dependent useEffects re-fire
     if (manager.isReady && !isReady) {
       setIsReady(true);
     }
 
-    return manager;
+    // Return null if init failed so callers using m?.method() skip gracefully
+    return initOk && manager.isReady ? manager : null;
   }, [isReady]);
 
   // Auto-init on first user interaction.

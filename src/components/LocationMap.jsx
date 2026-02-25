@@ -25,12 +25,18 @@ export default function LocationMap({ locations, accent, onSelectLocation, mapDa
   const NODE_R = 28;
   const NODE_R_HOVER = 34;
 
-  // Sync positions from saved mapData on load
+  // Sync positions from saved mapData on load or external changes (e.g. undo/redo)
+  const mapDataKey = mapData ? JSON.stringify([mapData.bgImage, Object.keys(mapData.positions || {}).length]) : null;
   useEffect(() => {
     if (mapData?.positions) setPositions(mapData.positions);
-    if (mapData?.bgImage) setBgImage(mapData.bgImage);
+    if (mapData?.bgImage !== undefined) setBgImage(mapData.bgImage || null);
     if (mapData?.bgOpacity != null) setBgOpacity(mapData.bgOpacity);
-  }, [mapData?.bgImage]);
+  }, [mapDataKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
+  }, []);
 
   // Save to chronicle whenever positions or bg change (debounced)
   const saveTimeout = useRef(null);
