@@ -1,0 +1,13 @@
+{
+  "name": "vtm-chronicle-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for World of Darkness Chronicle App — exposes chronicle data to Claude Desktop",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}
