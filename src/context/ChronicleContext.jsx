@@ -122,8 +122,10 @@ export function ChronicleProvider({ children }) {
     const matching = chronicles.filter(c => c.gameType === activeGameType);
     if (matching.length > 0) {
       if (!curId || !matching.find(c => c.id === curId)) {
-        saveBeforeSwitch();
-        setActiveChronicleId(matching[0].id);
+        (async () => {
+          await saveBeforeSwitch();
+          setActiveChronicleId(matching[0].id);
+        })();
       }
     } else {
       setActiveChronicleId(null);
@@ -158,7 +160,7 @@ export function ChronicleProvider({ children }) {
         setSelectedSplashCard(null);
         const matching = chronicles.filter(c => c.gameType === gameId);
         if (matching.length > 0) {
-          saveBeforeSwitch();
+          await saveBeforeSwitch();
           setActiveChronicleId(matching[0].id);
         }
       }, 1125);

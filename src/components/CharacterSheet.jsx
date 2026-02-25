@@ -277,9 +277,13 @@ export default function CharacterSheet({ character, accent, onStatsChange }) {
   const hasAutoPopulated = useRef(false);
 
   // Auto-populate stats from notes/backstory on first open if sheet is empty
+  const onStatsChangeRef = useRef(onStatsChange);
+  onStatsChangeRef.current = onStatsChange;
+
   useEffect(() => {
     if (hasAutoPopulated.current) return;
-    if (hasAnyStats(stats)) return; // already has data, don't overwrite
+    const curStats = character.stats || {};
+    if (hasAnyStats(curStats)) return; // already has data, don't overwrite
 
     const parsed = parseNotesIntoStats(character);
     if (!hasAnyStats(parsed)) return; // nothing found in notes either
@@ -287,7 +291,7 @@ export default function CharacterSheet({ character, accent, onStatsChange }) {
     hasAutoPopulated.current = true;
 
     // Detect V5 vs V20 from parsed data
-    let detectedEdition = edition;
+    let detectedEdition = curStats.edition || "v20";
     if (parsed.hunger || parsed.bloodPotency) detectedEdition = "v5";
     else if (parsed.generation || parsed.bloodPool || Object.keys(parsed.virtues || {}).length > 0) detectedEdition = "v20";
     // Also check attribute names: Composure/Resolve = V5, Appearance/Perception = V20
@@ -299,8 +303,8 @@ export default function CharacterSheet({ character, accent, onStatsChange }) {
       edition: detectedEdition,
     };
     setEdition(detectedEdition);
-    onStatsChange(newStats);
-  }, [character.notes, character.backstory]);
+    onStatsChangeRef.current(newStats);
+  }, [character]);
 
   const updateStat = useCallback((path, value) => {
     const newStats = { ...stats, edition };

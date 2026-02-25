@@ -5,39 +5,39 @@ const MAX_HISTORY = 30;
 export default function useUndoHistory() {
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+  const undoStackRef = useRef([]);
+  const redoStackRef = useRef([]);
   const isUndoRedoing = useRef(false);
 
   const pushState = useCallback((label, data) => {
     if (isUndoRedoing.current) return;
-    setUndoStack(prev => {
-      const next = [...prev, { label, data: JSON.parse(JSON.stringify(data)), timestamp: Date.now() }];
-      return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next;
-    });
+    const entry = { label, data: JSON.parse(JSON.stringify(data)), timestamp: Date.now() };
+    const next = [...undoStackRef.current, entry];
+    const trimmed = next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next;
+    undoStackRef.current = trimmed;
+    setUndoStack(trimmed);
+    redoStackRef.current = [];
     setRedoStack([]);
   }, []);
 
   const undo = useCallback(() => {
-    let result = null;
-    setUndoStack(prev => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      result = last;
-      setRedoStack(r => [...r, last]);
-      return prev.slice(0, -1);
-    });
-    return result;
+    if (undoStackRef.current.length === 0) return null;
+    const last = undoStackRef.current[undoStackRef.current.length - 1];
+    undoStackRef.current = undoStackRef.current.slice(0, -1);
+    setUndoStack(undoStackRef.current);
+    redoStackRef.current = [...redoStackRef.current, last];
+    setRedoStack(redoStackRef.current);
+    return last;
   }, []);
 
   const redo = useCallback(() => {
-    let result = null;
-    setRedoStack(prev => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      result = last;
-      setUndoStack(u => [...u, last]);
-      return prev.slice(0, -1);
-    });
-    return result;
+    if (redoStackRef.current.length === 0) return null;
+    const last = redoStackRef.current[redoStackRef.current.length - 1];
+    redoStackRef.current = redoStackRef.current.slice(0, -1);
+    setRedoStack(redoStackRef.current);
+    undoStackRef.current = [...undoStackRef.current, last];
+    setUndoStack(undoStackRef.current);
+    return last;
   }, []);
 
   const setIsUndoRedoing = useCallback((val) => {

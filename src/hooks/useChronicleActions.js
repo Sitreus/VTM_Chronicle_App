@@ -382,9 +382,10 @@ CRITICAL RULES:
   }, [modalData, chronicleData, saveChronicleData, setShowModal, setModalData]);
 
   const deleteNPC = useCallback(async (id) => {
-    if (!chronicleData) return;
-    await saveChronicleData({ ...chronicleData, npcs: (chronicleData.npcs || []).filter(n => n.id !== id) });
-  }, [chronicleData, saveChronicleData]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    await saveChronicleData({ ...cd, npcs: (cd.npcs || []).filter(n => n.id !== id) });
+  }, [chronicleDataRef, saveChronicleData]);
 
   const handleAvatarUpload = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -442,21 +443,23 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
   }, [modalData, chronicleData, saveChronicleData, setShowModal, setModalData]);
 
   const deleteThread = useCallback(async (id) => {
-    if (!chronicleData) return;
-    await saveChronicleData({ ...chronicleData, plotThreads: (chronicleData.plotThreads || []).filter(t => t.id !== id) });
-  }, [chronicleData, saveChronicleData]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    await saveChronicleData({ ...cd, plotThreads: (cd.plotThreads || []).filter(t => t.id !== id) });
+  }, [chronicleDataRef, saveChronicleData]);
 
   const cycleThreadStatus = useCallback(async (id) => {
-    if (!chronicleData) return;
-    const threads = [...(chronicleData.plotThreads || [])];
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    const threads = [...(cd.plotThreads || [])];
     const idx = threads.findIndex(t => t.id === id);
     if (idx < 0) return;
     const order = ["active", "cold", "resolved"];
     const cur = order.indexOf(threads[idx].status);
     if (cur < 0) return;
     threads[idx] = { ...threads[idx], status: order[(cur + 1) % 3] };
-    await saveChronicleData({ ...chronicleData, plotThreads: threads });
-  }, [chronicleData, saveChronicleData]);
+    await saveChronicleData({ ...cd, plotThreads: threads });
+  }, [chronicleDataRef, saveChronicleData]);
 
   // ─── Clock Management ─────
   const saveClock = useCallback(async () => {
@@ -477,19 +480,21 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
   }, [modalData, chronicleData, saveChronicleData, setShowModal, setModalData]);
 
   const advanceClock = useCallback(async (id, amount = 1) => {
-    if (!chronicleData) return;
-    const clocks = [...(chronicleData.clocks || [])];
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    const clocks = [...(cd.clocks || [])];
     const idx = clocks.findIndex(c => c.id === id);
     if (idx < 0) return;
     const newFilled = Math.max(0, Math.min(clocks[idx].filled + amount, clocks[idx].segments));
     clocks[idx] = { ...clocks[idx], filled: newFilled };
-    await saveChronicleData({ ...chronicleData, clocks });
-  }, [chronicleData, saveChronicleData]);
+    await saveChronicleData({ ...cd, clocks });
+  }, [chronicleDataRef, saveChronicleData]);
 
   const deleteClock = useCallback(async (id) => {
-    if (!chronicleData) return;
-    await saveChronicleData({ ...chronicleData, clocks: (chronicleData.clocks || []).filter(c => c.id !== id) });
-  }, [chronicleData, saveChronicleData]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    await saveChronicleData({ ...cd, clocks: (cd.clocks || []).filter(c => c.id !== id) });
+  }, [chronicleDataRef, saveChronicleData]);
 
   // ─── Faction Management ─────
   const saveFaction = useCallback(async () => {
@@ -510,9 +515,10 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
   }, [modalData, chronicleData, saveChronicleData, setShowModal, setModalData]);
 
   const deleteFaction = useCallback(async (id) => {
-    if (!chronicleData) return;
-    await saveChronicleData({ ...chronicleData, factions: (chronicleData.factions || []).filter(f => f.id !== id) });
-  }, [chronicleData, saveChronicleData]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    await saveChronicleData({ ...cd, factions: (cd.factions || []).filter(f => f.id !== id) });
+  }, [chronicleDataRef, saveChronicleData]);
 
   // ─── Location Management ─────
   const saveLocation = useCallback(async () => {
@@ -533,9 +539,10 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
   }, [modalData, chronicleData, saveChronicleData, setShowModal, setModalData]);
 
   const deleteLocation = useCallback(async (id) => {
-    if (!chronicleData) return;
-    await saveChronicleData({ ...chronicleData, locationDossiers: (chronicleData.locationDossiers || []).filter(l => l.id !== id) });
-  }, [chronicleData, saveChronicleData]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    await saveChronicleData({ ...cd, locationDossiers: (cd.locationDossiers || []).filter(l => l.id !== id) });
+  }, [chronicleDataRef, saveChronicleData]);
 
   // ─── Export Chronicle ─────
   const exportChronicle = useCallback(() => {
@@ -793,9 +800,10 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
   }, [modalData, chronicleData, saveChronicleData, setShowModal, setModalData]);
 
   const deleteCharacter = useCallback(async (id) => {
-    if (!chronicleData) return;
-    await saveChronicleData({ ...chronicleData, characters: (chronicleData.characters || []).filter(c => c.id !== id) });
-  }, [chronicleData, saveChronicleData]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    await saveChronicleData({ ...cd, characters: (cd.characters || []).filter(c => c.id !== id) });
+  }, [chronicleDataRef, saveChronicleData]);
 
   // ─── JSON Export ─────
   const exportChronicleJSON = useCallback(() => {
@@ -850,46 +858,52 @@ Write the recap now:` }], { maxTokens: 1024, proxyUrl });
 
   // ─── Rumor Board ─────
   const addRumor = useCallback(async (rumor) => {
-    if (!chronicleData) return;
-    const rumors = [...(chronicleData.rumors || []), rumor];
-    await saveWithUndo({ ...chronicleData, rumors }, "Add rumor");
-  }, [chronicleData, saveWithUndo]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    const rumors = [...(cd.rumors || []), rumor];
+    await saveWithUndo({ ...cd, rumors }, "Add rumor");
+  }, [chronicleDataRef, saveWithUndo]);
 
   const removeRumor = useCallback(async (id) => {
-    if (!chronicleData) return;
-    const rumors = (chronicleData.rumors || []).filter(r => r.id !== id);
-    await saveWithUndo({ ...chronicleData, rumors }, "Remove rumor");
-  }, [chronicleData, saveWithUndo]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    const rumors = (cd.rumors || []).filter(r => r.id !== id);
+    await saveWithUndo({ ...cd, rumors }, "Remove rumor");
+  }, [chronicleDataRef, saveWithUndo]);
 
   const updateRumor = useCallback(async (rumor) => {
-    if (!chronicleData) return;
-    const rumors = (chronicleData.rumors || []).map(r => r.id === rumor.id ? rumor : r);
-    await saveWithUndo({ ...chronicleData, rumors }, "Update rumor");
-  }, [chronicleData, saveWithUndo]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    const rumors = (cd.rumors || []).map(r => r.id === rumor.id ? rumor : r);
+    await saveWithUndo({ ...cd, rumors }, "Update rumor");
+  }, [chronicleDataRef, saveWithUndo]);
 
   // ─── Character Stats (Sheet) ─────
   const updateCharacterStats = useCallback(async (charId, stats) => {
-    if (!chronicleData) return;
-    const chars = (chronicleData.characters || []).map(c =>
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    const chars = (cd.characters || []).map(c =>
       c.id === charId ? { ...c, stats, updatedAt: new Date().toISOString() } : c
     );
-    await saveChronicleData({ ...chronicleData, characters: chars });
-  }, [chronicleData, saveChronicleData]);
+    await saveChronicleData({ ...cd, characters: chars });
+  }, [chronicleDataRef, saveChronicleData]);
 
   // ─── Inline Session Notes Editor ─────
   const updateSessionNotes = useCallback(async (sessionId, fields) => {
-    if (!chronicleData) return;
-    const sessions = (chronicleData.sessions || []).map(s =>
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    const sessions = (cd.sessions || []).map(s =>
       s.id === sessionId ? { ...s, ...fields } : s
     );
-    await saveWithUndo({ ...chronicleData, sessions }, "Edit session notes");
-  }, [chronicleData, saveWithUndo]);
+    await saveWithUndo({ ...cd, sessions }, "Edit session notes");
+  }, [chronicleDataRef, saveWithUndo]);
 
   // ─── Map Data (background image + pin positions) ─────
   const saveMapData = useCallback(async (mapData) => {
-    if (!chronicleData) return;
-    await saveChronicleData({ ...chronicleData, mapData });
-  }, [chronicleData, saveChronicleData]);
+    const cd = chronicleDataRef.current;
+    if (!cd) return;
+    await saveChronicleData({ ...cd, mapData });
+  }, [chronicleDataRef, saveChronicleData]);
 
   return {
     createChronicle, deleteChronicle, deleteSession,
