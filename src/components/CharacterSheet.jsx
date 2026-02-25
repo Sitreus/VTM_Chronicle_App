@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { S } from "../styles.js";
 
 // ─── V20 Stat Definitions ─────
@@ -29,6 +29,170 @@ const V5_SKILLS = {
   Mental: ["Academics", "Awareness", "Finance", "Investigation", "Medicine", "Occult", "Politics", "Science", "Technology"],
 };
 
+// All known stat names (lowercase) for fuzzy matching
+const ALL_ATTRIBUTE_NAMES = [
+  ...V20_ATTRIBUTES.Physical, ...V20_ATTRIBUTES.Social, ...V20_ATTRIBUTES.Mental,
+  ...V5_ATTRIBUTES.Social, ...V5_ATTRIBUTES.Mental, // adds Composure, Resolve
+].map(a => a.toLowerCase());
+
+const ALL_ABILITY_NAMES = [
+  ...new Set([
+    ...Object.values(V20_ABILITIES).flat(),
+    ...Object.values(V5_SKILLS).flat(),
+  ])
+].map(a => a.toLowerCase());
+
+// ─── Parse notes/text into structured stats ─────
+function parseNotesIntoStats(character) {
+  const stats = { attributes: {}, abilities: {}, disciplines: [], virtues: {} };
+  const notes = character.notes || "";
+  const backstory = character.backstory || "";
+  const allText = notes + "\n" + backstory;
+
+  // Helper: extract "Name N" or "Name: N" patterns from a comma-separated string
+  function extractDotPairs(text) {
+    const pairs = {};
+    // Match patterns like "Strength 3", "Strength: 3", "Strength (3)", "Strength ●●●"
+    const dotPattern = /([A-Z][a-z][a-z\s-]*?)[\s:]+(\d+|[●○•]+)/g;
+    let match;
+    while ((match = dotPattern.exec(text)) !== null) {
+      const name = match[1].trim().toLowerCase().replace(/\s+/g, "_");
+      let val;
+      if (/[●•]/.test(match[2])) {
+        val = (match[2].match(/[●•]/g) || []).length;
+      } else {
+        val = parseInt(match[2], 10);
+      }
+      if (val > 0 && val <= 10) {
+        pairs[name] = val;
+      }
+    }
+    return pairs;
+  }
+
+  // Find the "Attributes:" line in notes
+  const attrLine = notes.match(/Attributes:\s*(.+)/i);
+  if (attrLine) {
+    const pairs = extractDotPairs(attrLine[1]);
+    for (const [key, val] of Object.entries(pairs)) {
+      if (ALL_ATTRIBUTE_NAMES.includes(key)) {
+        stats.attributes[key] = val;
+      }
+    }
+  }
+
+  // Also try to find attributes scattered in the full text
+  if (Object.keys(stats.attributes).length === 0) {
+    const pairs = extractDotPairs(allText);
+    for (const [key, val] of Object.entries(pairs)) {
+      if (ALL_ATTRIBUTE_NAMES.includes(key)) {
+        stats.attributes[key] = val;
+      }
+    }
+  }
+
+  // Find "Abilities:" line
+  const abilLine = notes.match(/Abilities:\s*(.+)/i);
+  if (abilLine) {
+    const pairs = extractDotPairs(abilLine[1]);
+    for (const [key, val] of Object.entries(pairs)) {
+      if (ALL_ABILITY_NAMES.includes(key) || ALL_ABILITY_NAMES.includes(key.replace(/_/g, " "))) {
+        stats.abilities[key] = val;
+      }
+    }
+  }
+
+  // Also try abilities from full text if none found
+  if (Object.keys(stats.abilities).length === 0) {
+    const pairs = extractDotPairs(allText);
+    for (const [key, val] of Object.entries(pairs)) {
+      const normalized = key.replace(/_/g, " ");
+      if (ALL_ABILITY_NAMES.includes(normalized) || ALL_ABILITY_NAMES.includes(key)) {
+        stats.abilities[key] = val;
+      }
+    }
+  }
+
+  // Find "Disciplines/Spheres:" line
+  const discLine = notes.match(/Disciplines\/Spheres:\s*(.+)/i) || notes.match(/Disciplines:\s*(.+)/i);
+  if (discLine) {
+    const pairs = extractDotPairs(discLine[1]);
+    // Also handle "Auspex 3, Dominate 2" without the regex catching them
+    const commaParts = discLine[1].split(/,/).map(s => s.trim()).filter(Boolean);
+    for (const part of commaParts) {
+      const m = part.match(/^([A-Za-z][A-Za-z\s-]+?)[\s:]+(\d+|[●○•]+)$/);
+      if (m) {
+        const name = m[1].trim();
+        let val;
+        if (/[●•]/.test(m[2])) {
+          val = (m[2].match(/[●•]/g) || []).length;
+        } else {
+          val = parseInt(m[2], 10);
+        }
+        if (val > 0 && val <= 5 && !stats.disciplines.find(d => d.name.toLowerCase() === name.toLowerCase())) {
+          stats.disciplines.push({ name, value: val });
+        }
+      }
+    }
+    // Fallback from extractDotPairs
+    if (stats.disciplines.length === 0) {
+      for (const [key, val] of Object.entries(pairs)) {
+        const name = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        if (!stats.disciplines.find(d => d.name.toLowerCase() === name.toLowerCase())) {
+          stats.disciplines.push({ name, value: val });
+        }
+      }
+    }
+  }
+
+  // Find "Merits & Flaws:" line
+  const mfLine = notes.match(/Merits & Flaws:\s*(.+)/i);
+  if (mfLine) stats.meritsFlaws = mfLine[1].trim();
+
+  // Find "Generation/Rank:"
+  const genLine = notes.match(/Generation\/Rank:\s*(\d+)/i) || notes.match(/Generation:\s*(\d+)/i);
+  if (genLine) stats.generation = parseInt(genLine[1], 10);
+
+  // Virtues
+  const virtueNames = ["conscience", "self-control", "self_control", "courage", "conviction", "instinct"];
+  const allPairs = extractDotPairs(allText);
+  for (const [key, val] of Object.entries(allPairs)) {
+    if (virtueNames.includes(key) || virtueNames.includes(key.replace(/_/g, "-"))) {
+      stats.virtues[key.replace(/-/g, "_")] = val;
+    }
+  }
+
+  // Willpower, Humanity, Blood Pool
+  const wpMatch = allText.match(/Willpower[\s:]+(\d+)/i);
+  if (wpMatch) stats.willpower = parseInt(wpMatch[1], 10);
+  const humMatch = allText.match(/Humanity[\s:]+(\d+)/i);
+  if (humMatch) stats.humanity = parseInt(humMatch[1], 10);
+  const bpMatch = allText.match(/Blood\s*Pool[\s:]+(\d+)/i);
+  if (bpMatch) stats.bloodPool = parseInt(bpMatch[1], 10);
+  const hungerMatch = allText.match(/Hunger[\s:]+(\d+)/i);
+  if (hungerMatch) stats.hunger = parseInt(hungerMatch[1], 10);
+  const potencyMatch = allText.match(/Blood\s*Potency[\s:]+(\d+)/i);
+  if (potencyMatch) stats.bloodPotency = parseInt(potencyMatch[1], 10);
+
+  // Backgrounds
+  const bgLine = notes.match(/Backgrounds?:\s*(.+)/i);
+  if (bgLine) stats.backgrounds = bgLine[1].trim();
+
+  return stats;
+}
+
+// Check if stats object has any meaningful data
+function hasAnyStats(stats) {
+  if (!stats) return false;
+  return (
+    Object.keys(stats.attributes || {}).length > 0 ||
+    Object.keys(stats.abilities || {}).length > 0 ||
+    (stats.disciplines || []).length > 0 ||
+    stats.willpower || stats.humanity || stats.generation ||
+    stats.bloodPool || stats.hunger || stats.bloodPotency
+  );
+}
+
 // Dot rating component
 function DotRating({ value = 0, max = 5, accent, onChange, size = 14 }) {
   return (
@@ -52,7 +216,8 @@ function DotRating({ value = 0, max = 5, accent, onChange, size = 14 }) {
 function StatRow({ label, value, accent, onChange, maxDots = 5 }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0" }}>
-      <span style={{ fontSize: 15, color: "#c4b899", minWidth: 110 }}>{label}</span>
+      <span style={{ fontSize: 15, color: value > 0 ? "#e8dcc6" : "#c4b899", minWidth: 110,
+        fontWeight: value > 0 ? 600 : 400 }}>{label}</span>
       <DotRating value={value} max={maxDots} accent={accent} onChange={onChange} />
     </div>
   );
@@ -89,7 +254,7 @@ function SquareTracker({ label, value = 0, max = 10, accent, onChange }) {
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ fontSize: 13, fontFamily: "'Cinzel', serif", letterSpacing: 1, color: accent, marginBottom: 4 }}>{label}</div>
-      <div style={{ display: "flex", gap: 3 }}>
+      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
         {Array.from({ length: max }, (_, i) => (
           <div key={i}
             onClick={(e) => { e.stopPropagation(); onChange(i + 1 === value ? i : i + 1); }}
@@ -109,6 +274,33 @@ function SquareTracker({ label, value = 0, max = 10, accent, onChange }) {
 export default function CharacterSheet({ character, accent, onStatsChange }) {
   const stats = character.stats || {};
   const [edition, setEdition] = useState(stats.edition || "v20");
+  const hasAutoPopulated = useRef(false);
+
+  // Auto-populate stats from notes/backstory on first open if sheet is empty
+  useEffect(() => {
+    if (hasAutoPopulated.current) return;
+    if (hasAnyStats(stats)) return; // already has data, don't overwrite
+
+    const parsed = parseNotesIntoStats(character);
+    if (!hasAnyStats(parsed)) return; // nothing found in notes either
+
+    hasAutoPopulated.current = true;
+
+    // Detect V5 vs V20 from parsed data
+    let detectedEdition = edition;
+    if (parsed.hunger || parsed.bloodPotency) detectedEdition = "v5";
+    else if (parsed.generation || parsed.bloodPool || Object.keys(parsed.virtues || {}).length > 0) detectedEdition = "v20";
+    // Also check attribute names: Composure/Resolve = V5, Appearance/Perception = V20
+    if (parsed.attributes?.composure || parsed.attributes?.resolve) detectedEdition = "v5";
+    if (parsed.attributes?.appearance || parsed.attributes?.perception) detectedEdition = "v20";
+
+    const newStats = {
+      ...parsed,
+      edition: detectedEdition,
+    };
+    setEdition(detectedEdition);
+    onStatsChange(newStats);
+  }, [character.notes, character.backstory]);
 
   const updateStat = useCallback((path, value) => {
     const newStats = { ...stats, edition };
@@ -149,31 +341,89 @@ export default function CharacterSheet({ character, accent, onStatsChange }) {
     updateStat("disciplines", disciplines.filter((_, i) => i !== idx));
   };
 
+  // Re-parse from notes (manual trigger)
+  const reParseFromNotes = useCallback(() => {
+    const parsed = parseNotesIntoStats(character);
+    if (!hasAnyStats(parsed)) return;
+    // Merge: parsed values fill in where stats are 0/empty, but don't overwrite existing nonzero
+    const merged = { ...stats };
+    // Attributes
+    merged.attributes = { ...(merged.attributes || {}) };
+    for (const [k, v] of Object.entries(parsed.attributes || {})) {
+      if (!merged.attributes[k]) merged.attributes[k] = v;
+    }
+    // Abilities
+    merged.abilities = { ...(merged.abilities || {}) };
+    for (const [k, v] of Object.entries(parsed.abilities || {})) {
+      if (!merged.abilities[k]) merged.abilities[k] = v;
+    }
+    // Disciplines
+    const existingDiscNames = (merged.disciplines || []).map(d => d.name.toLowerCase());
+    const newDiscs = (parsed.disciplines || []).filter(d => !existingDiscNames.includes(d.name.toLowerCase()));
+    merged.disciplines = [...(merged.disciplines || []), ...newDiscs];
+    // Virtues
+    merged.virtues = { ...(merged.virtues || {}) };
+    for (const [k, v] of Object.entries(parsed.virtues || {})) {
+      if (!merged.virtues[k]) merged.virtues[k] = v;
+    }
+    // Scalars
+    if (!merged.willpower && parsed.willpower) merged.willpower = parsed.willpower;
+    if (!merged.humanity && parsed.humanity) merged.humanity = parsed.humanity;
+    if (!merged.generation && parsed.generation) merged.generation = parsed.generation;
+    if (!merged.bloodPool && parsed.bloodPool) merged.bloodPool = parsed.bloodPool;
+    if (!merged.hunger && parsed.hunger) merged.hunger = parsed.hunger;
+    if (!merged.bloodPotency && parsed.bloodPotency) merged.bloodPotency = parsed.bloodPotency;
+    if (!merged.meritsFlaws && parsed.meritsFlaws) merged.meritsFlaws = parsed.meritsFlaws;
+    if (!merged.backgrounds && parsed.backgrounds) merged.backgrounds = parsed.backgrounds;
+
+    onStatsChange(merged);
+  }, [character, stats, onStatsChange]);
+
   const ATTRIBUTES = edition === "v5" ? V5_ATTRIBUTES : V20_ATTRIBUTES;
   const SKILLS = edition === "v5" ? V5_SKILLS : V20_ABILITIES;
   const skillLabel = edition === "v5" ? "Skills" : "Abilities";
 
+  // Count filled stats for the badge
+  const filledCount = Object.values(stats.attributes || {}).filter(v => v > 0).length
+    + Object.values(stats.abilities || {}).filter(v => v > 0).length
+    + (stats.disciplines || []).filter(d => d.value > 0).length;
+
   return (
     <div style={{ ...S.card, padding: 20 }} onClick={e => e.stopPropagation()}>
-      {/* Edition Toggle */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontFamily: "'Cinzel', serif", fontSize: 20, letterSpacing: 2, color: accent }}>
-          Character Sheet
+      {/* Edition Toggle + Re-parse button */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontFamily: "'Cinzel', serif", fontSize: 20, letterSpacing: 2, color: accent }}>
+            Character Sheet
+          </div>
+          {filledCount > 0 && (
+            <span style={{ fontSize: 12, color: "#6a8a4a", fontFamily: "'Cinzel', serif", letterSpacing: 1 }}>
+              {filledCount} stats
+            </span>
+          )}
         </div>
-        <div style={{ display: "flex", gap: 2, background: "#1a1a22", borderRadius: 6, padding: 2 }}>
-          {[{ id: "v20", label: "V20" }, { id: "v5", label: "V5" }].map(ed => (
-            <button key={ed.id}
-              onClick={(e) => { e.stopPropagation(); setEdition(ed.id); updateStat("edition", ed.id); }}
-              style={{
-                background: edition === ed.id ? `${accent}25` : "transparent",
-                border: edition === ed.id ? `1px solid ${accent}50` : "1px solid transparent",
-                color: edition === ed.id ? "#e8dcc6" : "#5a5a65",
-                padding: "5px 14px", borderRadius: 4, cursor: "pointer",
-                fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: 1,
-              }}>
-              {ed.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); reParseFromNotes(); }}
+            style={{ ...S.btn(accent), padding: "4px 10px", fontSize: 11 }}
+            title="Re-read stats from character notes and fill missing values">
+            ↻ Auto-fill from notes
+          </button>
+          <div style={{ display: "flex", gap: 2, background: "#1a1a22", borderRadius: 6, padding: 2 }}>
+            {[{ id: "v20", label: "V20" }, { id: "v5", label: "V5" }].map(ed => (
+              <button key={ed.id}
+                onClick={(e) => { e.stopPropagation(); setEdition(ed.id); updateStat("edition", ed.id); }}
+                style={{
+                  background: edition === ed.id ? `${accent}25` : "transparent",
+                  border: edition === ed.id ? `1px solid ${accent}50` : "1px solid transparent",
+                  color: edition === ed.id ? "#e8dcc6" : "#5a5a65",
+                  padding: "5px 14px", borderRadius: 4, cursor: "pointer",
+                  fontFamily: "'Cinzel', serif", fontSize: 13, letterSpacing: 1,
+                }}>
+                {ed.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
