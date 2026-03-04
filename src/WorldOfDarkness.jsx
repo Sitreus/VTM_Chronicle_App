@@ -20,7 +20,7 @@ import ChronicleModals from "./modals/ChronicleModals.jsx";
 function WorldOfDarknessInner() {
   const {
     chronicles, activeChronicleId, activeChronicle, activeTab, setActiveTab,
-    loading, accent, bgImage, currentGameTypeId,
+    loading, accent, bgImage, bgVideo, currentGameTypeId,
     showSplash, setShowSplash, splashPhase, setSplashPhase,
     selectedSplashCard, splashTransition, activeGameType,
     setShowModal, setModalData,
@@ -96,7 +96,7 @@ function WorldOfDarknessInner() {
         .wod-card-enter { animation: wod-fadeIn 0.35s ease-out; }
         .wod-slide-enter { animation: wod-slideIn 0.3s ease-out; }
       `}</style>
-      {!showSplash && <DynamicBackground gameTypeId={currentGameTypeId} bgImage={bgImage} />}
+      {!showSplash && <DynamicBackground gameTypeId={currentGameTypeId} bgImage={bgImage} bgVideo={bgVideo} />}
       {!showSplash && !bgImage && <div style={S.noiseOverlay} />}
       {showSplash && <SplashScreen
         splashPhase={splashPhase} setSplashPhase={setSplashPhase}

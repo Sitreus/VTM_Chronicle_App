@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { GAME_TYPES, CARD_AUDIO_FILES } from "../constants.js";
-import { GAME_BACKGROUNDS, DEFAULT_BG } from "../splashImages.js";
+import { GAME_BACKGROUNDS, GAME_VIDEO_BACKGROUNDS, DEFAULT_BG } from "../splashImages.js";
 import { storageGet, storageSet, EMPTY_CHRONICLE_DATA } from "../utils/storage.js";
 import useAudio from "../audio/useAudio.js";
 import useUndoHistory from "../hooks/useUndoHistory.js";
@@ -53,7 +53,9 @@ export function ChronicleProvider({ children }) {
   const accent = gameType?.accent || "#c41e3a";
   const gameBg = activeGameType ? GAME_BACKGROUNDS[activeGameType] : (gameType ? GAME_BACKGROUNDS[gameType.id] : null);
   const bgImage = gameBg || DEFAULT_BG;
-  const currentGameTypeId = activeGameType || (gameType ? gameType.id : null);
+  const gameTypeKey = activeGameType || (gameType ? gameType.id : null);
+  const bgVideo = gameTypeKey ? GAME_VIDEO_BACKGROUNDS[gameTypeKey] : null;
+  const currentGameTypeId = gameTypeKey;
 
   // Flush current chronicle data to storage before switching away
   const saveBeforeSwitch = useCallback(async () => {
@@ -205,7 +207,7 @@ export function ChronicleProvider({ children }) {
     audio,
 
     // Derived
-    activeChronicle, gameType, accent, gameBg, bgImage, currentGameTypeId,
+    activeChronicle, gameType, accent, gameBg, bgImage, bgVideo, currentGameTypeId,
 
     // Core actions
     saveBeforeSwitch, saveChronicles, saveChronicleData,

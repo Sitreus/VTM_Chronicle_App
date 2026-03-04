@@ -243,13 +243,15 @@ const GAME_PARTICLES = {
 // Fallback for "mixed" or unknown types
 const DEFAULT_PARTICLES = GAME_PARTICLES.vtm;
 
-export default function DynamicBackground({ gameTypeId, bgImage }) {
+export default function DynamicBackground({ gameTypeId, bgImage, bgVideo }) {
   const canvasRef = useRef(null);
   const bgRef = useRef(null);
+  const videoRef = useRef(null);
   const panRef = useRef({ angle: Math.random() * Math.PI * 2, time: 0 });
 
-  // Slow pan/parallax for the background image — uses direct DOM mutation
+  // Slow pan/parallax for the background layer — uses direct DOM mutation
   // instead of setState to avoid triggering 60fps React re-renders.
+  // Applies to both the static image div and the video element's container.
   useEffect(() => {
     let animId;
     const pan = panRef.current;
@@ -265,6 +267,13 @@ export default function DynamicBackground({ gameTypeId, bgImage }) {
     animatePan();
     return () => cancelAnimationFrame(animId);
   }, []);
+
+  // Ensure video plays when source changes (handles autoplay policy)
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !bgVideo) return;
+    vid.play().catch(() => {});
+  }, [bgVideo]);
 
   // Themed particle canvas
   useEffect(() => {
@@ -330,20 +339,54 @@ export default function DynamicBackground({ gameTypeId, bgImage }) {
     };
   }, [gameTypeId]);
 
+  const gradientOverlay = "linear-gradient(180deg, rgba(8,8,13,0.72) 0%, rgba(13,13,20,0.78) 40%, rgba(10,10,18,0.84) 100%)";
+
   return (
     <>
-      {/* Parallax panning background image */}
-      {bgImage && (
+      {/* Video or static image background with parallax pan */}
+      {bgVideo ? (
         <div ref={bgRef} style={{
           position: "fixed", inset: "-20px",
-          backgroundImage: `linear-gradient(180deg, rgba(8,8,13,0.72) 0%, rgba(13,13,20,0.78) 40%, rgba(10,10,18,0.84) 100%), url("${bgImage}")`,
+          transform: "translate(0px, 0px) scale(1.04)",
+          transition: "transform 0.1s linear",
+          zIndex: 0,
+          overflow: "hidden",
+        }}>
+          <video
+            ref={videoRef}
+            key={bgVideo}
+            src={bgVideo}
+            poster={bgImage || undefined}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              position: "absolute",
+              top: "50%", left: "50%",
+              minWidth: "100%", minHeight: "100%",
+              width: "auto", height: "auto",
+              transform: "translate(-50%, -50%)",
+              objectFit: "cover",
+            }}
+          />
+          {/* Dark gradient overlay on top of video */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: gradientOverlay,
+          }} />
+        </div>
+      ) : bgImage ? (
+        <div ref={bgRef} style={{
+          position: "fixed", inset: "-20px",
+          backgroundImage: `${gradientOverlay}, url("${bgImage}")`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           transform: "translate(0px, 0px) scale(1.04)",
           transition: "transform 0.1s linear",
           zIndex: 0,
         }} />
-      )}
+      ) : null}
       {/* Themed particle overlay */}
       <canvas
         ref={canvasRef}
