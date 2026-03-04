@@ -51,6 +51,11 @@ function buildPriorityManifest() {
     { name: 'intro_loop', url: '/audio/intro_splash_screen_loop.ogg' },
     { name: 'intro_press', url: '/audio/intro_splash_screen_press_button.ogg' },
     { name: 'intro_stinger', url: '/audio/intro_splash_screen_stinger.ogg' },
+    // Card selection screen music (needed shortly after welcome screen)
+    { name: 'card_intro', url: '/audio/card_screen_intro_8bar_80bpm.ogg' },
+    { name: 'card_normal', url: '/audio/card_screen_loop_normal_16bar_80bpm.ogg' },
+    { name: 'card_transition', url: '/audio/card_screen_loop_transition_2bar_80bpm.ogg' },
+    { name: 'card_intense', url: '/audio/card_screen_loop_intense_24bar_80bpm.ogg' },
   ];
 }
 
@@ -93,6 +98,10 @@ export default class AudioStateManager {
     // Welcome screen music state
     this._welcomeMusicRequested = false;
     this._welcomeMusicStarted = false;
+
+    // Card selection screen music state
+    this._cardScreenHandles = [];    // engine play/loop handles
+    this._cardScreenActive = false;
   }
 
   // ─── Lifecycle ──────────────────────────────────────────────
@@ -205,6 +214,7 @@ export default class AudioStateManager {
    */
   async destroy() {
     this._stopIntroAudio(0);
+    this._stopCardScreenMusic(0);
     this.drone.stop();
     this.ambient.stop();
     this.transition.stop();
@@ -235,12 +245,15 @@ export default class AudioStateManager {
 
   /**
    * Called when the card selection screen becomes visible.
-   * Welcome music is already playing (started on welcome screen).
-   * This only tracks splash state.
+   * Welcome music has been faded out by onEnterDarkness().
+   * Starts the card screen music sequence.
    */
   onSplashEnter() {
     if (!this.isReady) return;
     this._splashActive = true;
+
+    // Start the card selection screen music sequence
+    this._startCardScreenMusic();
   }
 
   /**
@@ -304,8 +317,13 @@ export default class AudioStateManager {
     if (!this.isReady) return;
     this._currentGameLine = gameLineId;
 
-    // Fade out intro splash audio (playing during card selection)
+    // Fade out intro splash audio (if still lingering)
     this._stopIntroAudio(1.3);
+
+    // Fade out card screen music over 3 seconds
+    if (this._cardScreenActive) {
+      this._stopCardScreenMusic(3);
+    }
 
     // Play game-line sting
     const stingName = `sting_${gameLineId}`;
@@ -338,6 +356,11 @@ export default class AudioStateManager {
 
     // Stop any lingering intro audio
     this._stopIntroAudio(0.5);
+
+    // Stop card screen music (quick fade if exiting via Skip/Return)
+    if (this._cardScreenActive) {
+      this._stopCardScreenMusic(1.5);
+    }
 
     if (this.drone.isActive) {
       this.drone.fadeOut(1.5);
@@ -398,6 +421,77 @@ export default class AudioStateManager {
     if (this.drone.isActive) {
       this.drone.resetEvolution(1.5);
     }
+  }
+
+  // ─── Card Screen Music ─────────────────────────────────────
+
+  /**
+   * Start the card selection screen music sequence.
+   *
+   * Flow (all sample-accurate via Web Audio scheduling):
+   *   1. card_intro (8 bars) plays immediately
+   *   2. card_normal (16 bars) starts at exact end of intro, plays 2× (32 bars)
+   *   3. card_transition (2 bars) layers on top starting at bar 30 of the loop section
+   *   4. card_intense (24 bars) starts at bar 32, loops seamlessly until stopped
+   *
+   * @private
+   */
+  _startCardScreenMusic() {
+    this._stopCardScreenMusic(0);
+
+    const introDur = this.engine.getBufferDuration('card_intro');
+    const normalDur = this.engine.getBufferDuration('card_normal');
+    const transitionDur = this.engine.getBufferDuration('card_transition');
+
+    if (!introDur) return;
+    this._cardScreenActive = true;
+
+    const now = this.engine.currentTime;
+
+    // Phase 1: Play intro (8 bars)
+    const intro = this.engine.play('card_intro', { volume: 1 });
+    if (intro) this._cardScreenHandles.push(intro);
+
+    if (!normalDur) return;
+
+    // Derive bar duration from the normal loop (16 bars)
+    const barDuration = normalDur / 16;
+    const normalStart = now + introDur;
+
+    // Phase 2: Normal loop — schedule 2 back-to-back iterations (32 bars total)
+    const n1 = this.engine.play('card_normal', { volume: 1, when: normalStart });
+    const n2 = this.engine.play('card_normal', { volume: 1, when: normalStart + normalDur });
+    if (n1) this._cardScreenHandles.push(n1);
+    if (n2) this._cardScreenHandles.push(n2);
+
+    // Phase 3: Transition — layers on top at bar 30 of the 32-bar section
+    if (transitionDur && this.engine.hasBuffer('card_transition')) {
+      const transStart = normalStart + 30 * barDuration;
+      const tr = this.engine.play('card_transition', { volume: 1, when: transStart });
+      if (tr) this._cardScreenHandles.push(tr);
+    }
+
+    // Phase 4: Intense loop — starts seamlessly at bar 32 (end of normal section)
+    if (this.engine.hasBuffer('card_intense')) {
+      const intenseStart = normalStart + 2 * normalDur;
+      const intense = this.engine.playGaplessLoop('card_intense', {
+        volume: 1,
+        when: intenseStart,
+      });
+      if (intense) this._cardScreenHandles.push(intense);
+    }
+  }
+
+  /**
+   * Stop all card screen music.
+   * @param {number} fadeOut — fade-out duration in seconds (0 = immediate)
+   */
+  _stopCardScreenMusic(fadeOut = 3) {
+    for (const handle of this._cardScreenHandles) {
+      this.engine.stop(handle.id, fadeOut);
+    }
+    this._cardScreenHandles = [];
+    this._cardScreenActive = false;
   }
 
   // ─── Helpers ────────────────────────────────────────────────
