@@ -19,4 +19,14 @@ export const GAME_BACKGROUNDS = {
   mixed: null,
 };
 
+export const GAME_VIDEO_BACKGROUNDS = {
+  vtm: "/backgrounds/vtm_video_background.mp4",
+  mta: "/backgrounds/mta_video_background.mp4",
+  wta: "/backgrounds/wta_video_background.mp4",
+  wto: "/backgrounds/wto_video_background.mp4",
+  htr: "/backgrounds/htr_video_background.mp4",
+  ctd: "/backgrounds/ctd_video_background.mp4",
+  mixed: null,
+};
+
 export const DEFAULT_BG = "/splash/default_bg.jpg";
