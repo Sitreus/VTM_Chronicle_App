@@ -439,26 +439,29 @@ export default class AudioStateManager {
   _startCardScreenMusic() {
     this._stopCardScreenMusic(0);
 
-    const introDur = this.engine.getBufferDuration('card_intro');
     const normalDur = this.engine.getBufferDuration('card_normal');
     const transitionDur = this.engine.getBufferDuration('card_transition');
 
-    if (!introDur) return;
+    if (!this.engine.hasBuffer('card_intro')) return;
     this._cardScreenActive = true;
 
     const now = this.engine.currentTime;
 
-    // Phase 1: Play intro (8 bars)
+    // Derive bar duration from the normal loop (exactly 16 bars at 80 BPM)
+    const barDuration = normalDur ? normalDur / 16 : 3; // fallback 3s = 1 bar at 80 BPM
+
+    // Phase 1: Play intro — the file is 8 bars of music plus a reverb tail.
+    // Let it play its full duration so the tail rings out naturally.
     const intro = this.engine.play('card_intro', { volume: 1 });
     if (intro) this._cardScreenHandles.push(intro);
 
     if (!normalDur) return;
 
-    // Derive bar duration from the normal loop (16 bars)
-    const barDuration = normalDur / 16;
-    const normalStart = now + introDur;
+    // Phase 2: Normal loop starts at bar 8 (not at end of intro file).
+    // This creates a blend: the intro's tail overlaps with the loop's start.
+    const normalStart = now + 8 * barDuration;
 
-    // Phase 2: Normal loop — schedule 2 back-to-back iterations (32 bars total)
+    // Schedule 2 back-to-back iterations (32 bars total)
     const n1 = this.engine.play('card_normal', { volume: 1, when: normalStart });
     const n2 = this.engine.play('card_normal', { volume: 1, when: normalStart + normalDur });
     if (n1) this._cardScreenHandles.push(n1);
